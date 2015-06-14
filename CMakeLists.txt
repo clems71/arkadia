@@ -17,10 +17,13 @@ include_directories(
 )
 
 add_executable(arkadia main.cpp)
+add_executable(arkadia-gpu main-gpu.cpp)
+
 
 if (MINGW)
   target_link_libraries(arkadia mingw32)
+  target_link_libraries(arkadia-gpu mingw32)
 endif ()
 
 target_link_libraries(arkadia ${SDL_LIBRARY} SDL2main genesis)
-
+target_link_libraries(arkadia-gpu ${SDL_LIBRARY} SDL2main genesis)
