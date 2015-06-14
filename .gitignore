@@ -26,3 +26,9 @@
 *.exe
 *.out
 *.app
+
+# OS X
+.DS_Store
+
+# Build dir
+build
