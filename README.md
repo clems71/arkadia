@@ -15,6 +15,18 @@ Dependencies:
         cmake .. -DCMAKE_BUILD_TYPE=Release -G "MSYS Makefiles"
         make -j8
 
+### Linux (ODROID C1)
+
+Dependencies:
+- SDL2 - built with `./configure --disable-video-opengl`
+- GCC 4.9.2+
+
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+        make -j4
+
+
 ## Ideas (unordered)
 
 ROM Web service

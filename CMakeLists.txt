@@ -26,4 +26,4 @@ if (MINGW)
 endif ()
 
 target_link_libraries(arkadia ${SDL_LIBRARY} SDL2main genesis)
-target_link_libraries(arkadia-gpu ${SDL_LIBRARY} SDL2main genesis)
+target_link_libraries(arkadia-gpu ${SDL_LIBRARY} SDL2main genesis EGL)

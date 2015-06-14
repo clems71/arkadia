@@ -4,6 +4,8 @@
 
 #include <SDL.h>
 
+#include <GLES2/gl2.h>
+
 #include <genesiscore.h>
 
 void audioCallback(void*  userdata,
@@ -37,11 +39,27 @@ int main(int argc, char *argv[])
 
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 
-  if (SDL_GetNumAudioDevices(0) == 0)
+  if (SDL_GetNumRenderDrivers() == 0)
     return -2;
 
-  SDL_Window * win = SDL_CreateWindow("GenesisCore", 100, 100, 800, 600, SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN_DESKTOP);
-  SDL_Renderer * ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+  if (SDL_GetNumAudioDevices(0) == 0)
+    return -3;
+
+  SDL_Window * win = SDL_CreateWindow("GenesisCore", 0, 0, 1280, 720, SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL);
+
+  SDL_GLContext context = SDL_GL_CreateContext(win);
+  SDL_GL_MakeCurrent(win, context);
+  
+  std::cout << "OpenGL Info" << std::endl;
+  std::cout << "   Version : " << glGetString(GL_VERSION) << std::endl;
+  std::cout << "    Vendor : " << glGetString(GL_VENDOR) << std::endl;
+  std::cout << "  Renderer : " << glGetString(GL_RENDERER) << std::endl;
+
+  SDL_Renderer * ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+
+  SDL_RendererInfo rendererInfo;
+  SDL_GetRendererInfo(ren, &rendererInfo);
+  std::cout << "Using renderer : " << rendererInfo.name << std::endl;
 
   GenesisCore core(argv[1]);
 
