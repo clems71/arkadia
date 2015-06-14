@@ -4,16 +4,16 @@
 
 ### Windows
 
-Currently, only MSYS2 mingw64 is tested and supported on this platform.
+*Currently, only MSYS2 mingw64 is tested and supported on this platform.*
 
 Dependencies:
 - SDL2
 - GCC 4.9.2+
 
-    mkdir build
-    cd build
-    cmake .. -DCMAKE_BUILD_TYPE=Release -G "MSYS Makefiles"
-    make -j8
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -G "MSYS Makefiles"
+        make -j8
 
 ## Ideas (unordered)
 
