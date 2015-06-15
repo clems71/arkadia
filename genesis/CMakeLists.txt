@@ -1,8 +1,5 @@
 add_definitions(-DLSB_FIRST -DUSE_32BPP_RENDERING)
 
-# Compiler flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y")
-
 add_library(genesis
   src/genplusgx_source/cart_hw/areplay.c
   src/genplusgx_source/cart_hw/eeprom_93c.c
@@ -67,6 +64,7 @@ add_library(genesis
   src/genplusgx_source/vdp_render.c
   src/genplusgx_source/z80/z80.c
   src/scrc32.c
+  
   src/genesiscore.cpp
 )
 
