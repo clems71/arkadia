@@ -6,6 +6,8 @@
 
 #include <genesiscore.h>
 
+#include "oglstats.h"
+
 void audioCallback(void*  userdata,
                        Uint8* stream,
                        int    len)
@@ -37,11 +39,24 @@ int main(int argc, char *argv[])
 
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 
-  if (SDL_GetNumAudioDevices(0) == 0)
+  if (SDL_GetNumRenderDrivers() == 0)
     return -2;
 
-  SDL_Window * win = SDL_CreateWindow("GenesisCore", 100, 100, 800, 600, SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN_DESKTOP);
-  SDL_Surface * winSurface = SDL_GetWindowSurface(win);
+  if (SDL_GetNumAudioDevices(0) == 0)
+    return -3;
+
+  SDL_Window * win = SDL_CreateWindow("GenesisCore", 0, 0, 1280, 720, SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL);
+
+  SDL_GLContext context = SDL_GL_CreateContext(win);
+  SDL_GL_MakeCurrent(win, context);
+  
+  oglPrintDebugStats();
+
+  SDL_Renderer * ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+
+  SDL_RendererInfo rendererInfo;
+  SDL_GetRendererInfo(ren, &rendererInfo);
+  std::cout << "Using renderer : " << rendererInfo.name << std::endl;
 
   GenesisCore core(argv[1]);
 
@@ -116,8 +131,11 @@ int main(int argc, char *argv[])
 
     memcpy(surf->pixels, vbuf.pixels.get(), vbuf.height * vbuf.pitch());
 
-    SDL_BlitScaled(surf, NULL, winSurface, NULL);    
-    SDL_UpdateWindowSurface(win);
+    SDL_Texture * tex = SDL_CreateTextureFromSurface(ren, surf);
+    SDL_RenderCopy(ren, tex, NULL, NULL);
+    SDL_RenderPresent(ren);
+
+    SDL_DestroyTexture(tex);
 
     frameCtr++;
 
@@ -127,12 +145,6 @@ int main(int argc, char *argv[])
   }
 
   SDL_FreeSurface(surf);
-
-  // // 4 times CPU upscale
-  // uint32_t resizedVideoBuffer[(320*4)*(240*4)];
-  // stbir_resize_uint8((const uint8_t *)videoBuffer, 320, 240, 0, (uint8_t *)resizedVideoBuffer, 320*4, 240*4, 0, 4);
-
-  // stbi_write_tga("capture.tga", 320*4, 224*4, 4, resizedVideoBuffer);
 
   return 0;
 }

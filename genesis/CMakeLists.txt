@@ -3,21 +3,6 @@ add_definitions(-DLSB_FIRST -DUSE_32BPP_RENDERING)
 # Compiler flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y")
 
-include_directories(
-  include
-  src
-  src/genplusgx_source
-  src/genplusgx_source/cart_hw
-  src/genplusgx_source/cart_hw/svp
-  src/genplusgx_source/cd_hw
-  src/genplusgx_source/input_hw
-  src/genplusgx_source/m68k
-  src/genplusgx_source/ntsc
-  src/genplusgx_source/sound
-  src/genplusgx_source/tremor
-  src/genplusgx_source/z80
-)
-
 add_library(genesis
   src/genplusgx_source/cart_hw/areplay.c
   src/genplusgx_source/cart_hw/eeprom_93c.c
@@ -83,4 +68,22 @@ add_library(genesis
   src/genplusgx_source/z80/z80.c
   src/scrc32.c
   src/genesiscore.cpp
+)
+
+target_include_directories(genesis PRIVATE 
+  src
+  src/genplusgx_source
+  src/genplusgx_source/cart_hw
+  src/genplusgx_source/cart_hw/svp
+  src/genplusgx_source/cd_hw
+  src/genplusgx_source/input_hw
+  src/genplusgx_source/m68k
+  src/genplusgx_source/ntsc
+  src/genplusgx_source/sound
+  src/genplusgx_source/tremor
+  src/genplusgx_source/z80
+)  
+
+target_include_directories(genesis PUBLIC
+  include
 )
