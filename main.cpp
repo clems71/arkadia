@@ -6,7 +6,15 @@
 
 #include <genesiscore.h>
 
-#include "oglstats.h"
+#include "ogl.h"
+#include "font.h"
+#include "log.h"
+
+// Need ogl.h
+#define NANOVG_GL3_IMPLEMENTATION
+#include <nanovg.h>
+#include <nanovg_gl.h>
+
 
 void audioCallback(void*  userdata,
                        Uint8* stream,
@@ -37,33 +45,35 @@ int main(int argc, char *argv[])
 {
   if (argc == 1) return -1;
 
-  SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+  SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS);
 
-  if (SDL_GetNumRenderDrivers() == 0)
-    return -2;
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+
+  auto win = SDL_CreateWindow("Arkadia", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+  if (!win) {
+    throw std::runtime_error("cannot initialize OpenGL window");
+  }
+  SDL_GL_CreateContext(win);
+
+  glextInit();
+
+  // glEnable(GL_STENCIL_TEST);
+  NVGcontext * vg = nvgCreateGL3(NVG_STENCIL_STROKES | NVG_ANTIALIAS);
+  nvgCreateFontMem(vg, "arcade", &font_speedwagon[0], font_speedwagon.size(), 0);
+
+  GenesisCore core(argv[1]);
 
   if (SDL_GetNumAudioDevices(0) == 0)
     return -3;
 
-  SDL_Window * win = SDL_CreateWindow("GenesisCore", 0, 0, 1280, 720, SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL);
+  LOG_INFO("Using audio device '%s'", SDL_GetAudioDeviceName(0, 0));
 
-  SDL_GLContext context = SDL_GL_CreateContext(win);
-  SDL_GL_MakeCurrent(win, context);
-  
-  oglPrintDebugStats();
-
-  SDL_Renderer * ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
-
-  SDL_RendererInfo rendererInfo;
-  SDL_GetRendererInfo(ren, &rendererInfo);
-  std::cout << "Using renderer : " << rendererInfo.name << std::endl;
-
-  GenesisCore core(argv[1]);
-
-  std::vector<short> audioSamples;
-
-  std::cout << "Using audio device : " << SDL_GetAudioDeviceName(0, 0) << std::endl;
-
+  std::vector<short> audioSamples;  
   SDL_AudioSpec want, have;
   SDL_zero(want);
   want.freq = 48000;
@@ -72,7 +82,6 @@ int main(int argc, char *argv[])
   want.samples = 4096;
   want.callback = audioCallback;
   want.userdata = &audioSamples;
-  
   const auto audioDevice = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(0, 0), 0, &want, &have, 0);
 
   if (!audioDevice) {
@@ -81,35 +90,23 @@ int main(int argc, char *argv[])
 
   SDL_PauseAudioDevice(audioDevice, 0);  // start audio playing.
 
+  // Initialize core framebuffer image
   const Surface & vbuf = core.videoBuffer();
+  int fbImage = nvgCreateImageRGBA(vg, vbuf.width, vbuf.height, 0, (const unsigned char *)vbuf.pixels.get());
 
-  SDL_Surface* surf = SDL_CreateRGBSurfaceFrom(
-    vbuf.pixels.get(),
-    vbuf.width,
-    vbuf.height,
-    sizeof(pixel_t) * 8,
-    vbuf.pitch(),
-    0xFF,
-    0xFF00,
-    0xFF0000,
-    0x00
-  );
+  auto tframe = std::chrono::high_resolution_clock::now();
 
-  SDL_Event event;
-  size_t frameCtr = 0;
-  const auto t0 = std::chrono::system_clock::now();
+  SDL_Event event = {0};
   while (true)
   {
-    const auto t0Frame = std::chrono::high_resolution_clock::now();
+    // FPS Calculus
+    const auto tnew = std::chrono::high_resolution_clock::now();
+    const float fps = 1.0 / std::chrono::duration<double>(tnew - tframe).count();
+    tframe = tnew;
 
     while(SDL_PollEvent(&event)) {
       switch (event.key.keysym.sym) {
-        case SDLK_ESCAPE: {
-          const auto t1 = std::chrono::system_clock::now();
-          std::cout << 1000.0 * double(frameCtr) / double(std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count()) << std::endl;
-          return 0;
-        }
-
+        case SDLK_ESCAPE: return 0;
         IMPL_BUTTON(SDLK_UP, Up)
         IMPL_BUTTON(SDLK_DOWN, Down)
         IMPL_BUTTON(SDLK_LEFT, Left)
@@ -124,27 +121,47 @@ int main(int argc, char *argv[])
       }
     }
 
+    int width, height;
+    SDL_GetWindowSize(win, &width, &height);
+
     core.update();
 
     // TODO purge : circular buffer with fixed capacity!
     std::copy(core.audioBuffer().begin(), core.audioBuffer().end(), std::back_inserter(audioSamples));
 
-    memcpy(surf->pixels, vbuf.pixels.get(), vbuf.height * vbuf.pitch());
+    // No really needed for color buffer, we redraw the full color buffer
+    glClearColor(0,0,0,0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    SDL_Texture * tex = SDL_CreateTextureFromSurface(ren, surf);
-    SDL_RenderCopy(ren, tex, NULL, NULL);
-    SDL_RenderPresent(ren);
+    nvgUpdateImage(vg, fbImage, (const unsigned char *)vbuf.pixels.get());
 
-    SDL_DestroyTexture(tex);
+    nvgBeginFrame(vg, width, height, 1);
+    nvgResetTransform(vg);
 
-    frameCtr++;
+    NVGpaint pattern = nvgImagePattern(vg, 0, 0, width, height, 0, fbImage, 1.0);
+    nvgBeginPath(vg);
+    nvgRect(vg, 0, 0, width, height);
+    nvgFillPaint(vg, pattern);
+    nvgFill(vg);
 
-    while (std::chrono::high_resolution_clock::now() - t0Frame < std::chrono::duration<double>(core.frameInterval())) {
+    nvgFontFace(vg, "arcade");
+    nvgFontSize(vg, 22.0f);
+    nvgTextAlign(vg,NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
+    nvgFillColor(vg, nvgRGBA(120, 120, 120, 128));
+    auto dispStr = "FPS : " + std::to_string(int(fps)) + '\n';
+    dispStr += core.romInfo() + '\n';
+    dispStr += std::string("Vendor : ") + (const char *)glGetString(GL_VENDOR) + '\n';
+    dispStr += std::string("Renderer : ") + (const char *)glGetString(GL_RENDERER) + '\n';
+    dispStr += std::string("Version : ") + (const char *)glGetString(GL_VERSION) + '\n';
+    nvgTextBox(vg, 10, 10, width, dispStr.c_str(), NULL);
+
+    nvgEndFrame(vg);
+    SDL_GL_SwapWindow(win);
+
+    while (std::chrono::high_resolution_clock::now() - tframe < std::chrono::duration<double>(core.frameInterval())) {
       std::this_thread::yield();
     }
   }
-
-  SDL_FreeSurface(surf);
 
   return 0;
 }

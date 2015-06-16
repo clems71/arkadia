@@ -28,7 +28,7 @@
 *.app
 
 # OS X
-.DS_Store
+.*DS_Store
 
 # Build dir
 build

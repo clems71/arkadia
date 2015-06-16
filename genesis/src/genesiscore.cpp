@@ -165,10 +165,11 @@ GenesisCore::GenesisCore(const char * rompath)
   if (!load_rom((char *)rompath))
     throw std::runtime_error("cannot load ROM");
 
-  // DEBUG TRACE
-  printf("SPECIAL : %d\n", cart.special);
-  printf("SIZE : %d\n", cart.romsize);
-  printf("COMPANY : %s\n", get_company());
+  rom_info_ = std::string("Company : ") + get_company();
+
+  // printf("SPECIAL : %d\n", cart.special);
+  // printf("SIZE : %d\n", cart.romsize);
+  // printf("COMPANY : %s\n", get_company());
 
   audio_init(48000, vdp_pal ? pal_fps : ntsc_fps);
 
@@ -196,12 +197,9 @@ void GenesisCore::update()
   // Swizzle BGRA -> RGBA
   for (size_t i=0; i<video_buffer_.width*video_buffer_.height; i++) 
   {
-    const pixel_t pixSrc = video_buffer_.pixels[i];
-    pixel_t pixOut;
-    pixOut.r = pixSrc.b;
-    pixOut.g = pixSrc.g;
-    pixOut.b = pixSrc.r;
-    video_buffer_.pixels[i] = pixOut;
+    pixel_t & pix = video_buffer_.pixels[i];
+    std::swap(pix.b, pix.r);
+    pix.a = 255u; // We have to do this as it's cleared by the emulator core at each frame...
   }
 
   // int samples = audio_update(soundBuffer);

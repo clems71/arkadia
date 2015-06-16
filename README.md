@@ -8,12 +8,22 @@
 
 Dependencies:
 - SDL2
+- GLEW
 - GCC 4.9.2+
 
         mkdir build
         cd build
         cmake .. -DCMAKE_BUILD_TYPE=Release -G "MSYS Makefiles"
         make -j8
+
+
+### OS X
+
+Dependencies:
+
+- SDL2
+- Clang 3.6
+
 
 ### Linux (ODROID C1)
 

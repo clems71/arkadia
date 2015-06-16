@@ -17,18 +17,23 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -Wall -Wextra")
 
 find_package(SDL2 REQUIRED)
 
+add_subdirectory(libs/stb)
+add_subdirectory(libs/nanovg)
+
 # Include emulation cores here
 add_subdirectory(genesis)
 
 add_executable(arkadia 
   main.cpp
-  oglstats.cpp
+  ogl.cpp
+  font_speedwagon.cpp
 )
 
 target_include_directories(arkadia PRIVATE ${SDL_INCLUDE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
 if (MINGW)
-  target_link_libraries(arkadia mingw32)
+  find_package(GLEW REQUIRED)
+  target_link_libraries(arkadia ${GLEW_LIBRARIES} mingw32)
 endif ()
 
 if (${HAVE_OPENGLES2}) # Embedded case - OpenGL ES 2.0
@@ -38,4 +43,4 @@ else() # Desktop case - OpenGL
   target_link_libraries(arkadia ${OPENGL_LIBRARIES})
 endif()
 
-target_link_libraries(arkadia ${SDL_LIBRARY} SDL2main genesis)
+target_link_libraries(arkadia ${SDL_LIBRARY} SDL2main genesis nanovg)

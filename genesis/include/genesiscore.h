@@ -46,8 +46,13 @@ public:
   //! @brief Frame interval in seconds
   double frameInterval() const;
 
+  inline const std::string & romInfo() const {
+    return rom_info_;
+  }
+
 private:
   Surface video_buffer_;
   std::vector<short> audio_buffer_frame_;
   std::unique_ptr<short []> audio_buffer_;
+  std::string rom_info_;
 };
