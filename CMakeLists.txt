@@ -24,9 +24,10 @@ add_subdirectory(libs/nanovg)
 add_subdirectory(genesis)
 
 add_executable(arkadia 
-  main.cpp
-  ogl.cpp
   font_speedwagon.cpp
+  main.cpp
+  oglprogram.cpp
+  ogltexture.cpp
 )
 
 target_include_directories(arkadia PRIVATE ${SDL_INCLUDE_DIR} ${CMAKE_CURRENT_BINARY_DIR})

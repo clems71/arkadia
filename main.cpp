@@ -7,6 +7,8 @@
 #include <genesiscore.h>
 
 #include "ogl.h"
+#include "oglprogram.h"
+#include "ogltexture.h"
 #include "font.h"
 #include "log.h"
 
@@ -39,6 +41,13 @@ void audioCallback(void*  userdata,
     if (event.key.state == SDL_PRESSED) core.buttonPressed(Players::Player1, Buttons::btn); \
     else core.buttonReleased(Players::Player1, Buttons::btn); \
     break; \
+
+
+// TODO : Draw rect with shader effect
+void drawQuad()
+{
+
+}
 
 
 int main(int argc, char *argv[])
@@ -92,7 +101,29 @@ int main(int argc, char *argv[])
 
   // Initialize core framebuffer image
   const Surface & vbuf = core.videoBuffer();
-  int fbImage = nvgCreateImageRGBA(vg, vbuf.width, vbuf.height, 0, (const unsigned char *)vbuf.pixels.get());
+
+  Texture fbTex(vbuf.width, vbuf.height);
+  Program prog(
+    R"(
+      layout(location=0) in vec4 position;
+      layout(location=1) in vec2 uv0;
+
+      void main(void)
+      {
+        gl_Position = position;
+      }
+      )", 
+    R"(
+      out vec4 fragColor;
+              
+      void main(void)
+      {
+        fragColor = vec4(1.0, 0.0, 1.0, 0.8);
+      }
+      )"
+  );
+
+  // int fbImage = nvgCreateImageRGBA(vg, vbuf.width, vbuf.height, 0, (const unsigned char *)vbuf.pixels.get());
 
   auto tframe = std::chrono::high_resolution_clock::now();
 
@@ -133,16 +164,18 @@ int main(int argc, char *argv[])
     glClearColor(0,0,0,0);
     glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    nvgUpdateImage(vg, fbImage, (const unsigned char *)vbuf.pixels.get());
+    fbTex.update(vbuf.pixels.get());
+
+    // nvgUpdateImage(vg, fbImage, (const unsigned char *)vbuf.pixels.get());
 
     nvgBeginFrame(vg, width, height, 1);
     nvgResetTransform(vg);
 
-    NVGpaint pattern = nvgImagePattern(vg, 0, 0, width, height, 0, fbImage, 1.0);
-    nvgBeginPath(vg);
-    nvgRect(vg, 0, 0, width, height);
-    nvgFillPaint(vg, pattern);
-    nvgFill(vg);
+    // NVGpaint pattern = nvgImagePattern(vg, 0, 0, width, height, 0, fbImage, 1.0);
+    // nvgBeginPath(vg);
+    // nvgRect(vg, 0, 0, width, height);
+    // nvgFillPaint(vg, pattern);
+    // nvgFill(vg);
 
     nvgFontFace(vg, "arcade");
     nvgFontSize(vg, 22.0f);

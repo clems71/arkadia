@@ -1,8 +1,5 @@
 #pragma once
 
-#include <memory>
-#include <string>
-
 #include <config.h>
 
 // OpenGL ES 2.0 takes precedence
@@ -21,14 +18,3 @@
 #else
   #error "No valid OpenGL gl.h header available"
 #endif
-
-class Program
-{
-public:
-	Program(const std::string & vertSrc, const std::string & fragSrc);
-	~Program();
-
-private:
-	class Impl_;
-	std::unique_ptr<Impl_> impl_;
-};

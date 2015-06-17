@@ -1,4 +1,4 @@
-#include "ogl.h"
+#include "oglprogram.h"
 
 #include <array>
 
@@ -29,6 +29,8 @@ auto createShader(const std::string & src, GLenum shaderType)
 
 } // anonymous namespace
 
+
+
 class Program::Impl_ {
 public:
 	GLint program_;
@@ -40,6 +42,23 @@ Program::Program(const std::string & vertSrc, const std::string & fragSrc)
 : impl_(new Impl_)
 {
 	impl_->program_ = glCreateProgram();
+	impl_->vertex_ = createShader(vertSrc, GL_VERTEX_SHADER);
+	impl_->fragment_ = createShader(fragSrc, GL_FRAGMENT_SHADER);
+	glAttachShader(impl_->program_, impl_->vertex_);
+	glAttachShader(impl_->program_, impl_->fragment_);
+	glLinkProgram(impl_->program_);
+	GLint status;
+	glGetProgramiv(impl_->program_, GL_LINK_STATUS, &status);
+	if (status == GL_FALSE) {
+		GLint bufSz;
+		glGetProgramiv(impl_->program_, GL_INFO_LOG_LENGTH, &bufSz);
+		std::unique_ptr<char[]> logStr(new char[bufSz]);
+		GLsizei bufSz2;
+		glGetProgramInfoLog(impl_->program_, bufSz, &bufSz2, logStr.get());
+		LOG_ERROR("Cannot link program\n%s", logStr.get());
+		throw std::runtime_error("cannot link program");
+
+	}
 }
 
 Program::~Program()
