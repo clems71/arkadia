@@ -6,8 +6,9 @@
 #include <config.h>
 
 // OpenGL ES 2.0 takes precedence
-#if defined(HAVE_OPENGLES2) 
+#if defined(HAVE_OPENGLES2)
   #include <GLES2/gl2.h>
+  #include <GLES2/glext.h>
   #define glextInit()
 #elif defined(HAVE_OPENGL_FRAMEWORK)
   #include <OpenGL/gl3.h>

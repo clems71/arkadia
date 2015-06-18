@@ -26,6 +26,7 @@ add_subdirectory(genesis)
 add_executable(arkadia 
   main.cpp
   ogl.cpp
+  font_oswald.cpp
   font_speedwagon.cpp
 )
 
