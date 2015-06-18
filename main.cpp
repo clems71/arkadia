@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 
   // Initialize core framebuffer image
   const Surface & vbuf = core.videoBuffer();
-  int fbImage = nvgCreateImageRGBA(vg, vbuf.width, vbuf.height, 0, (const unsigned char *)vbuf.pixels.get());
+  int fbImage = nvgCreateImageRGBA(vg, vbuf.width, vbuf.height, NVG_IMAGE_PREMULTIPLIED, (const unsigned char *)vbuf.pixels.get());
 
   auto tframe = std::chrono::high_resolution_clock::now();
 
