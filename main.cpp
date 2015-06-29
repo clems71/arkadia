@@ -70,7 +70,14 @@ int main(int argc, char *argv[])
 {
   if (argc == 1) return -1;
 
-  SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+  SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
+
+  SDL_Joystick * joy = nullptr;
+
+  if (SDL_NumJoysticks() > 0) {
+    joy = SDL_JoystickOpen(0);
+  }
+  
 
 #if defined(HAVE_OPENGLES2)
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
@@ -158,6 +165,47 @@ int main(int argc, char *argv[])
         default:
           break;
       }
+    }
+
+    if (joy) {
+
+      static uint32_t state = 0u;
+
+      Sint16 x_move = SDL_JoystickGetAxis(joy, 0);
+      Sint16 y_move = SDL_JoystickGetAxis(joy, 1);
+
+      uint32_t new_state = 0u;
+      if(x_move > 0) {
+        new_state |= 1 << (int)Buttons::Right;
+      } else if(x_move < 0) {
+        new_state |= 1 << (int)Buttons::Left;
+      }
+
+      if(y_move > 0) {
+        new_state |= 1 << (int)Buttons::Down;
+      } else if(y_move < 0) {
+        new_state |= 1 << (int)Buttons::Up;
+      }
+
+      if(SDL_JoystickGetButton(joy, 0)) {
+        new_state |= 1 << (int)Buttons::A;
+      }
+
+      if(SDL_JoystickGetButton(joy, 1)) {
+        new_state |= 1 << (int)Buttons::B;
+      }
+
+      uint32_t changes = new_state ^ state;
+      for(int i = 0 ; i < 32; ++i) {
+        if((changes >> i) & 1) {
+          if((new_state >> i) & 1) {
+            core.buttonPressed(Players::Player1, Buttons(i));
+          } else {
+            core.buttonReleased(Players::Player1, Buttons(i));
+          }
+        }
+      } 
+      state = new_state;
     }
 
     timings["tEvents"] = timer.getAndRestart();
