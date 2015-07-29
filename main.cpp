@@ -77,14 +77,14 @@ int main(int argc, char *argv[])
   if (SDL_NumJoysticks() > 0) {
     joy = SDL_JoystickOpen(0);
   }
-  
+
 
 #if defined(HAVE_OPENGLES2)
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 #else
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);  
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 #endif
 
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-  auto win = SDL_CreateWindow("Arkadia", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+  auto win = SDL_CreateWindow("Arkadia", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN_DESKTOP);
   if (!win) {
     throw std::runtime_error("cannot initialize OpenGL window");
   }
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
 
   LOG_INFO("Using audio device '%s'", SDL_GetAudioDeviceName(0, 0));
 
-  std::vector<short> audioSamples;  
+  std::vector<short> audioSamples;
   SDL_AudioSpec want, have;
   SDL_zero(want);
   want.freq = 48000;
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
             core.buttonReleased(Players::Player1, Buttons(i));
           }
         }
-      } 
+      }
       state = new_state;
     }
 

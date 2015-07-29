@@ -9,9 +9,9 @@
 
   Description:
     This file contains source code necessary to initialize the system.  It
-    implements the "SYS_Initialize" function, defines the configuration bits, 
-    and allocates any necessary global system resources, such as the 
-    sysObj structure that contains the object handles to all the MPLAB Harmony 
+    implements the "SYS_Initialize" function, defines the configuration bits,
+    and allocates any necessary global system resources, such as the
+    sysObj structure that contains the object handles to all the MPLAB Harmony
     module objects in the system.
  *******************************************************************************/
 
@@ -114,57 +114,28 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
  ****************************************************/
 const uint8_t hid_rpt0[] =
 {
-    0x09,0x05,        // USAGE (Game Pad)
-    0xA1,0x01,        // COLLECTION (Application)
-
-    0x05,0x09,        // USAGE_PAGE(Button)
-    0x15,0x00,        // LOGICAL_MINIMUM(0)
-    0x25,0x01,        // LOGICAL_MAXIMUM(1)
-    0x75,0x01,        // REPORT_SIZE(1)
-    0x95,0x08,        // REPORT_COUNT(8)
-    0x19,0x01,        // USAGE_MINIMUM(Button 1)
-    0x29,0x08,        // USAGE_MAXIMUM(Button 8)
-    0x81,0x02,        // INPUT(Data,Var,Abs)
-
-    0x05,0x01,        // USAGE_PAGE(Generic Desktop)
-    0x26,0xFF,0x00,   // LOGICAL_MAXIMUM(255)    
-    0x75,0x08,        // REPORT_SIZE(8)
-    0x95,0x02,        // REPORT_COUNT(2)
-    0x09,0x30,        // USAGE(X)
-    0x09,0x31,        // USAGE(Y)
-    0x81,0x02,        // INPUT(Data,Var,Abs)
-
-    
-    0x05,0x08,        // USAGE_PAGE (LEDs)
-    0x15,0x00,        // LOGICAL_MINIMUM(0)
-    0x25,0x01,        // LOGICAL_MAXIMUM(1)
-    0x95,0x01,        // REPORT_COUNT(1)
-    0x75,0x08,        // REPORT_SIZE(8)
-    0x19,0x01,        // USAGE_MINIMUM
-    0x29,0x08,        // USAGE_MINIMUM
-    0x91,0x02,        // OUTPUT
-    
-//    0x05,0x01,        // USAGE_PAGE(Generic Desktop)
-//    0x25,0x07,        // LOGICAL_MAXIMUM(7)
-//    0x46,0x3B,0x01,   // PHYSICAL_MAXIMUM(315)
-//    0x75,0x04,        // REPORT_SIZE(4)
-//    0x95,0x01,        // REPORT_COUNT(1)
-//    0x65,0x14,        // UNIT(Eng Rot:Angular Pos)
-//    0x09,0x39,        // USAGE(Hat Switch)
-//    0x81,0x42,        // INPUT(Data,Var,Abs,Null)
-//    0x65,0x00,        // UNIT(None)
-//    0x95,0x01,        // REPORT_COUNT(1)
-//    0x81,0x01,        // INPUT(Cnst,Ary,Abs)
-//    0x26,0xFF,0x00,   // LOGICAL_MAXIMUM(255)
-//    0x46,0xFF,0x00,   // PHYSICAL_MAXIMUM(255)
-//    0x09,0x30,        // USAGE(X)
-//    0x09,0x31,        // USAGE(Y)
-//    0x09,0x32,        // USAGE(Z)
-//    0x09,0x35,        // USAGE(Rz)
-//    0x75,0x08,        // REPORT_SIZE(8)
-//    0x95,0x04,        // REPORT_COUNT(4)
-//    0x81,0x02,        // INPUT(Data,Var,Abs)
-    0xC0
+  0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
+  0x09, 0x05,                    // USAGE (Game Pad)
+  0xa1, 0x01,                    // COLLECTION (Application)
+  0xa1, 0x00,                    //   COLLECTION (Physical)
+  0x05, 0x09,                    //     USAGE_PAGE (Button)
+  0x19, 0x01,                    //     USAGE_MINIMUM (Button 1)
+  0x29, 0x08,                    //     USAGE_MAXIMUM (Button 8)
+  0x15, 0x00,                    //     LOGICAL_MINIMUM (0)
+  0x25, 0x01,                    //     LOGICAL_MAXIMUM (1)
+  0x95, 0x08,                    //     REPORT_COUNT (8)
+  0x75, 0x01,                    //     REPORT_SIZE (1)
+  0x81, 0x02,                    //     INPUT (Data,Var,Abs)
+  0x05, 0x01,                    //     USAGE_PAGE (Generic Desktop)
+  0x09, 0x30,                    //     USAGE (X)
+  0x09, 0x31,                    //     USAGE (Y)
+  0x15, 0x81,                    //     LOGICAL_MINIMUM (-127)
+  0x25, 0x7f,                    //     LOGICAL_MAXIMUM (127)
+  0x75, 0x08,                    //     REPORT_SIZE (8)
+  0x95, 0x02,                    //     REPORT_COUNT (2)
+  0x81, 0x02,                    //     INPUT (Data,Var,Abs)
+  0xc0,                          //   END_COLLECTION
+  0xc0                           // END_COLLECTION
 };
 
 /**************************************************
@@ -178,16 +149,16 @@ const uint8_t hid_rpt0[] =
         .queueSizeReportSend = 1
     };
 /**************************************************
- * USB Device Layer Function Driver Registration 
+ * USB Device Layer Function Driver Registration
  * Table
  **************************************************/
 const USB_DEVICE_FUNCTION_REGISTRATION_TABLE funcRegistrationTable[1] =
 {
     /* Function 1 */
-    { 
-        .configurationValue = 1,    /* Configuration value */ 
-        .interfaceNumber = 0,       /* First interfaceNumber of this function */ 
-        .speed = USB_SPEED_FULL,    /* Function Speed */ 
+    {
+        .configurationValue = 1,    /* Configuration value */
+        .interfaceNumber = 0,       /* First interfaceNumber of this function */
+        .speed = USB_SPEED_FULL,    /* Function Speed */
         .numberOfInterfaces = 1,    /* Number of interfaces */
         .funcDriverIndex = 0,  /* Index of HID Function Driver */
         .driver = (void*)USB_DEVICE_HID_FUNCTION_DRIVER,    /* USB HID function data exposed to device layer */
@@ -199,7 +170,7 @@ const USB_DEVICE_FUNCTION_REGISTRATION_TABLE funcRegistrationTable[1] =
  * USB Device Layer Descriptors
  *******************************************/
 /*******************************************
- *  USB Device Descriptor 
+ *  USB Device Descriptor
  *******************************************/
 const USB_DEVICE_DESCRIPTOR deviceDescriptor =
 {
@@ -235,8 +206,8 @@ const uint8_t fullSpeedConfigurationDescriptor[]=
     0x00,                                               // Configuration string index
     USB_ATTRIBUTE_DEFAULT | USB_ATTRIBUTE_SELF_POWERED, // Attributes
     50,                                                 // Max power consumption (2X mA)
-    /* Descriptor for Function 1 - HID     */ 
-    
+    /* Descriptor for Function 1 - HID     */
+
 	/* Interface Descriptor */
 
     0x09,                               // Size of this descriptor in bytes
@@ -276,8 +247,8 @@ const uint8_t fullSpeedConfigurationDescriptor[]=
     USB_TRANSFER_TYPE_INTERRUPT,    // Attributes
     0x40,0x00,                      // size
     0x01,                           // Interval
-    
-    
+
+
 
 
 };
@@ -340,8 +311,8 @@ USB_DEVICE_CONFIGURATION_DESCRIPTORS_TABLE fullSpeedConfigDescSet[1] =
     {
         sizeof(sd002),
         USB_DESCRIPTOR_STRING,
-        {'H','I','D',' ','J','o','y','s','t','i','c','k',' ','D','e','m','o' } 
-    }; 
+        {'H','I','D',' ','J','o','y','s','t','i','c','k',' ','D','e','m','o' }
+    };
 
 /***************************************
  * Array of string descriptors
@@ -355,19 +326,19 @@ USB_DEVICE_STRING_DESCRIPTORS_TABLE stringDescriptors[3]=
 
 
 /*******************************************
- * USB Device Layer Master Descriptor Table 
+ * USB Device Layer Master Descriptor Table
  *******************************************/
 const USB_DEVICE_MASTER_DESCRIPTOR usbMasterDescriptor =
 {
     &deviceDescriptor,          /* Full speed descriptor */
     1,                          /* Total number of full speed configurations available */
     fullSpeedConfigDescSet,     /* Pointer to array of full speed configurations descriptors*/
-    NULL, 
-    0, 
-    NULL, 
+    NULL,
+    0,
+    NULL,
     3,                          // Total number of string descriptors available.
     stringDescriptors,          // Pointer to array of string descriptors.
-    NULL, 
+    NULL,
     NULL
 };
 
@@ -379,11 +350,11 @@ const USB_DEVICE_INIT usbDevInitData =
 {
     /* System module initialization */
     .moduleInit = {SYS_MODULE_POWER_RUN_FULL},
-    
+
     /* Number of function drivers registered to this instance of the
        USB device layer */
     .registeredFuncCount = 1,
-    
+
     /* Function driver table registered to this instance of the USB device layer*/
     .registeredFunctions = (USB_DEVICE_FUNCTION_REGISTRATION_TABLE*)funcRegistrationTable,
 
@@ -392,13 +363,13 @@ const USB_DEVICE_INIT usbDevInitData =
 
     /* USB Device Speed */
     .deviceSpeed = USB_SPEED_FULL,
-    
+
     /* Index of the USB Driver to be used by this Device Layer Instance */
     .driverIndex = DRV_USBFS_INDEX_0,
 
     /* Pointer to the USB Driver Functions. */
     .usbDriverInterface = DRV_USBFS_DEVICE_INTERFACE,
-    
+
 };
 
 // </editor-fold>
@@ -427,11 +398,11 @@ const DRV_USBFS_INIT drvUSBInit =
 
     /* System module initialization */
     .moduleInit = {SYS_MODULE_POWER_RUN_FULL},
-    
+
     .operationMode = DRV_USBFS_OPMODE_DEVICE,
-    
+
     .operationSpeed = USB_SPEED_FULL,
-    
+
     /* Stop in idle */
     .stopInIdle = false,
 
@@ -462,8 +433,8 @@ SYSTEM_OBJECTS sysObj;
 
 /*******************************************************************************
   Device Control System Service Initialization Data
-  
-  <editor-fold defaultstate="collapsed" 
+
+  <editor-fold defaultstate="collapsed"
   desc="Device Control System Service Initialization Data">
 */
 
@@ -509,11 +480,11 @@ void SYS_Initialize ( void* data )
     SYS_PORTS_Initialize();
 
     /* Initialize Drivers */
-    /* Initialize USB Driver */ 
+    /* Initialize USB Driver */
     sysObj.drvUSBObject = DRV_USBFS_Initialize(DRV_USBFS_INDEX_0, (SYS_MODULE_INIT *) &drvUSBInit);
 
     /* Initialize System Services */
-    SYS_INT_Initialize();  
+    SYS_INT_Initialize();
 
     /* Initialize Middleware */
 
@@ -530,4 +501,3 @@ void SYS_Initialize ( void* data )
 /*******************************************************************************
  End of File
 */
-

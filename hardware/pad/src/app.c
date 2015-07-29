@@ -1,9 +1,9 @@
 /*******************************************************************************
   MPLAB Harmony Application Source File
-  
+
   Company:
     Microchip Technology Inc.
-  
+
   File Name:
     app.c
 
@@ -11,8 +11,8 @@
     This file contains the source code for the MPLAB Harmony application.
 
   Description:
-    This file contains the source code for the MPLAB Harmony application.  It 
-    implements the logic of the application's state machine and it may call 
+    This file contains the source code for the MPLAB Harmony application.  It
+    implements the logic of the application's state machine and it may call
     API routines of other MPLAB Harmony modules in the system, such as drivers,
     system services, and middleware.  However, it does not call any of the
     system interfaces (such as the "Initialize" and "Tasks" functions) of any of
@@ -49,7 +49,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 
 // *****************************************************************************
 // *****************************************************************************
-// Section: Included Files 
+// Section: Included Files
 // *****************************************************************************
 // *****************************************************************************
 
@@ -75,7 +75,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 
   Remarks:
     This structure should be initialized by the APP_Initialize function.
-    
+
     Application strings and buffers are be defined outside this structure.
 */
 
@@ -114,13 +114,13 @@ void APP_USBDeviceHIDEventHandler
             break;
 
         case USB_DEVICE_HID_EVENT_REPORT_RECEIVED:
-            
+
             reportReceived = (USB_DEVICE_HID_EVENT_DATA_REPORT_RECEIVED *) pData;
             if(reportReceived->handle == appData->sendTransferHandleRx )
             {
                 // Transfer progressed.
                 appData->isReportReadComplete = true;
-            }            
+            }
 
             break;
 
@@ -214,7 +214,7 @@ void APP_USBDeviceEventHandler(USB_DEVICE_EVENT event, void * eventData, uintptr
             /* Attach the device */
             USB_DEVICE_Attach (appData.deviceHandle);
             break;
-            
+
         case USB_DEVICE_EVENT_POWER_REMOVED:
             /* Attach the device */
             USB_DEVICE_Detach (appData.deviceHandle);
@@ -244,20 +244,20 @@ void APP_USBDeviceEventHandler(USB_DEVICE_EVENT event, void * eventData, uintptr
 void APP_EmulateJoystick(void)
 {
     joystickReport.buttons = 0x00;
-    joystickReport.x = 0x80;
-    joystickReport.y = 0x80;
-    
+    joystickReport.x = 0x0;
+    joystickReport.y = 0x0;
+
 //    TRISBbits.TRISB5 = 1;
-    
+
     if(PORTBbits.RB4) joystickReport.buttons |= 0x01;
     if(PORTBbits.RB5) joystickReport.buttons |= 0x02;
-    
+
 //    TRISBbits.TRISB5 = 0;
-    
-    if(PORTAbits.RA4) joystickReport.y = 0x00;
-    if(PORTBbits.RB7) joystickReport.x = 0xFF;
-    if(PORTBbits.RB8) joystickReport.x = 0x00;
-    if(PORTBbits.RB9) joystickReport.y = 0xFF;
+
+    if(PORTAbits.RA4) joystickReport.y = 0x81;
+    if(PORTBbits.RB7) joystickReport.x = 0x7f;
+    if(PORTBbits.RB8) joystickReport.x = 0x81;
+    if(PORTBbits.RB9) joystickReport.y = 0x7f;
 }
 
 /**********************************************
@@ -293,10 +293,10 @@ void APP_Initialize ( void )
 {
     /* Place the App state machine in its initial state. */
     appData.state = APP_STATE_INIT;
-    
+
     appData.deviceHandle = USB_DEVICE_HANDLE_INVALID;
     appData.isConfigured = false;
- 
+
     /* Initialize the switch state */
     appData.switch1IsPressed = false;
 
@@ -305,11 +305,11 @@ void APP_Initialize ( void )
 
     appData.sendTransferHandleRx = USB_DEVICE_HID_TRANSFER_HANDLE_INVALID;
     appData.sendTransferHandleTx = USB_DEVICE_HID_TRANSFER_HANDLE_INVALID;
-    
+
     /* Initialize tracking variables */
     appData.isReportSentComplete = true;
     appData.isReportReadComplete = true;
-    
+
 //    TRISBbits.TRISB4 = 0;
     CNPDAbits.CNPDA4 = 1;
     CNCONAbits.ON = 1;
@@ -319,7 +319,7 @@ void APP_Initialize ( void )
     CNPDBbits.CNPDB8 = 1;
     CNPDBbits.CNPDB9 = 1;
     CNCONBbits.ON = 1;
-    
+
 //    TRISBbits.TRISB5 = 0;
 //    LATBbits.LATB5 = 0;
 }
@@ -396,6 +396,7 @@ void APP_Tasks ( void )
 
         case APP_STATE_EMULATE_JOYSTICK:
 
+#if 0
             if (appData.isReportReadComplete) {
                 if (joystickReportRd.leds) {
                     PORTBbits.RB4 = 1;
@@ -404,25 +405,29 @@ void APP_Tasks ( void )
                 }
 
                 appData.isReportReadComplete = false;
-                
+
                 USB_DEVICE_HID_ReportReceive(appData.hidInstance,
                     &appData.sendTransferHandleRx,
                     (uint8_t *)&joystickReportRd,
                     sizeof(USB_HID_JOYSTICK_REPORT_RD));
             }
-            
+
+#endif
+#if 1
             if(appData.isReportSentComplete)
             {
                 /* This means report can be sent*/
-                
+
                 APP_EmulateJoystick();
-                
+
                 appData.isReportSentComplete = false;
                 USB_DEVICE_HID_ReportSend(appData.hidInstance,
                     &appData.sendTransferHandleTx,
                     (uint8_t *)&joystickReport,
                     sizeof(USB_HID_JOYSTICK_REPORT_WR));
              }
+#endif
+
             appData.state = APP_STATE_CHECK_IF_CONFIGURED;
             break;
 
@@ -437,9 +442,8 @@ void APP_Tasks ( void )
         }
     }
 }
- 
+
 
 /*******************************************************************************
  End of File
  */
-
