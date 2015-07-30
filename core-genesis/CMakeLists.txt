@@ -1,6 +1,18 @@
+cmake_minimum_required(VERSION 3.0)
+project(core-genesis)
+
+include(GenerateExportHeader)
+
 add_definitions(-DLSB_FIRST -DUSE_32BPP_RENDERING)
 
-add_library(genesis
+set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/../frontend/cores)
+
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+
+add_library(core-genesis SHARED
   src/genplusgx_source/cart_hw/areplay.c
   src/genplusgx_source/cart_hw/eeprom_93c.c
   src/genplusgx_source/cart_hw/eeprom_i2c.c
@@ -64,11 +76,11 @@ add_library(genesis
   src/genplusgx_source/vdp_render.c
   src/genplusgx_source/z80/z80.c
   src/scrc32.c
-  
-  src/genesiscore.cpp
+
+  src/core.cpp
 )
 
-target_include_directories(genesis PRIVATE 
+target_include_directories(core-genesis PRIVATE
   src
   src/genplusgx_source
   src/genplusgx_source/cart_hw
@@ -80,8 +92,24 @@ target_include_directories(genesis PRIVATE
   src/genplusgx_source/sound
   src/genplusgx_source/tremor
   src/genplusgx_source/z80
-)  
+)
 
-target_include_directories(genesis PUBLIC
+target_include_directories(core-genesis PUBLIC
   include
+  ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Create shared library export helper header
+generate_export_header(core-genesis BASE_NAME CORE)
+
+install(FILES
+ include/core.h
+ ${PROJECT_BINARY_DIR}/core_export.h
+ DESTINATION include
+)
+
+install(TARGETS core-genesis
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
 )

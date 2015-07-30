@@ -1,41 +1,39 @@
 # arkadia
 
-## Build
+Arkadia is split in multiple layers:
+- **emulation cores** : core-genesis only for the moment
+- **frontend** : an *Electron* based HTML5 webapp to play games
 
-### Windows
+## Emulation cores build
 
-*Currently, only MSYS2 mingw64 is tested and supported on this platform.*
-
-Dependencies:
-- SDL2
-- GLEW
-- GCC 4.9.2+
-
-        mkdir build
-        cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -G "MSYS Makefiles"
-        make -j8
-
+C++ emulation cores are built using CMake so you need to install it to be able to build these cores.
 
 ### OS X
 
 Dependencies:
-
-- SDL2
 - Clang 3.6
 
+To install the genesis core at the right place (next to the frontend), just type the following lines in your console:
 
-### Linux (ODROID C1)
+        mkdir -p
+        cd build
+        cmake ../core-genesis -DCMAKE_BUILD_TYPE=Release
+        make install -j8
+
+
+### Windows
+
+**TO BE DONE**
+
+
+## Frontend build
 
 Dependencies:
-- SDL2 - built with `./configure --disable-video-opengl`
-- GCC 4.9.2+
+- Node with npm (v0.12 at least)
 
-        mkdir build
-        cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release
-        make -j4
-
+        cd frontend
+        npm install && npm run install-fix
+        npm start
 
 ## Ideas (unordered)
 
@@ -46,14 +44,4 @@ ROM Web service
 - name
 - console
 
-Electronics USB board for joysticks (inputs)
-- build a mips32 gcc for PIC32
-- buy joysticks, buttons, etc...
-
 Electronics USB board for coin system (RFID ?)
-
-Try to build the SDL2 sample for Odroid C1
-- maybe switch to straight opengl
-- buildroot - custom fbdev only - no acceleration
-
-Frontend polishing (C++ / Qt / HTML / JS / Kivy ?)

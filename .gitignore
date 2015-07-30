@@ -32,3 +32,5 @@
 
 # Build dir
 build
+frontend/node_modules
+frontend/cores

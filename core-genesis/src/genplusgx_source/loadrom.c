@@ -1101,7 +1101,11 @@ char *get_company(void)
   if (s != NULL)
   {
     s++;
-    strcpy (company, s);
+    
+    // strcpy on OS X (UNIX?) doesn't support overlapping buffers
+    i = 0;
+    while (s[i]) company[i] = s[i++];
+    company[i] = NULL;
   }
 
   /** Strip any trailing spaces **/

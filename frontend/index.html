@@ -1,0 +1,167 @@
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>Arkadia</title>
+		<style>
+			body {
+				margin: 0;
+				padding: 0;
+				background-color: #333;
+			}
+			#frame {
+				width: 100%;
+				height: 100%;
+			}
+			select {
+				position: fixed;
+				top: 10px;
+				right: 10px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="frame">
+		</div>
+		<select id="selectFilter"></select>
+		<script>
+		var fs = require('fs')
+		var createShader = require("gl-shader")
+		var createTexture = require("gl-texture2d")
+		var drawTriangle = require("a-big-triangle")
+
+		var ffi = require('ffi')
+
+		var genesisCore = ffi.Library('./cores/lib/libcore-genesis', {
+		  'coreCreate': ['pointer', ['string']],
+			'coreDelete': ['void', ['pointer']],
+		  'coreUpdate': ['void', ['pointer']],
+		  'coreVideoData': ['void', ['pointer', 'pointer']],
+			'coreAudioData': ['int', ['pointer', 'pointer']],
+			'coreFrameInterval': ['double', ['pointer']],
+			'coreButtonPressed': ['void', ['pointer', 'int', 'int']],
+			'coreButtonReleased': ['void', ['pointer', 'int', 'int']],
+		})
+
+		var core = genesisCore.coreCreate('../roms/genesis/mm2.bin')
+
+		var shell = require("gl-now")({
+			tickRate: genesisCore.coreFrameInterval(core) * 1000,
+			element: document.getElementById('frame')
+		})
+
+		// Avoid input capture
+		shell.preventDefaults = false
+
+		var filterElmt = document.getElementById('selectFilter')
+		var filters = []
+
+		shell.on("gl-init", function() {
+
+			function addFilter(name) {
+				var option = document.createElement("option")
+				option.text = name
+				option.value = name
+				filterElmt.add(option, null)
+				filters.push(createShader(
+					shell.gl,
+					fs.readFileSync(__dirname + '/filter-' + name + '.vert', 'utf8'),
+					fs.readFileSync(__dirname + '/filter-' + name + '.frag', 'utf8')
+				))
+			}
+
+			addFilter('sabr')
+			addFilter('crt')
+			addFilter('lcd3x')
+			addFilter('default')
+		})
+
+		// Load another ROM at runtime test
+		// setTimeout(function() {
+		// 	genesisCore.coreDelete(core)
+		// 	core = genesisCore.coreCreate('../roms/genesis/mm2.bin')
+		// }, 4000)
+
+		buttons = [
+			['button-up', 'up', 0],
+			['button-down', 'down', 1],
+			['button-left', 'left', 2],
+			['button-right', 'right', 3],
+			['button-a', 'Z', 4],
+			['button-b', 'X', 5],
+			['button-c', 'C', 6],
+			['button-enter', 'enter', 7],
+		]
+
+		for (btn of buttons) {
+			shell.bind(btn[0], btn[1])
+		}
+
+		var WIDTH = 320
+		var HEIGHT = 224
+
+		var videoBuf = new Uint8Array(WIDTH * HEIGHT * 4)
+
+		var audioBuf = new Buffer(16*1024 * 2)
+		var audioCtx = new AudioContext()
+		var audioSrcBuf = audioCtx.createBuffer(2, 48000, 48000)
+		var audioSrc = audioCtx.createBufferSource()
+		audioSrc.buffer = audioSrcBuf
+		audioSrc.connect(audioCtx.destination)
+		audioSrc.loop = true
+
+		var audioIdx = 0
+		var audioStarted = false
+
+		shell.on('tick', function() {
+			for (btn of buttons) {
+				if (shell.press(btn[0]) > 0) {
+					genesisCore.coreButtonPressed(core, 0, btn[2])
+				}
+				if (shell.release(btn[0]) > 0) {
+					genesisCore.coreButtonReleased(core, 0, btn[2])
+				}
+			}
+			genesisCore.coreUpdate(core)
+
+			var audioSamples = genesisCore.coreAudioData(core, audioBuf) / 2
+			for (var channel = 0; channel < 2; channel++) {
+				var nowBuffering = audioSrcBuf.getChannelData(channel)
+				for (var i = 0; i < audioSamples; i++) {
+					var sample = audioBuf.readInt16LE(i * 4 + channel * 2)
+					nowBuffering[(i + audioIdx) % 48000] = sample / 32768.0
+				}
+			}
+			audioIdx += audioSamples
+			audioIdx %= 48000
+
+			if (!audioStarted) {
+				audioSrc.start()
+				audioStarted = true
+			}
+		})
+
+		var tex0
+
+		shell.on("gl-render", function() {
+			genesisCore.coreVideoData(core, videoBuf)
+
+			// Lazy init of texture
+			if (tex0 === undefined) {
+				tex0 = createTexture(shell.gl, [WIDTH, HEIGHT])
+			}
+
+			var shader = filters[filterElmt.selectedIndex]
+
+		  shader.bind()
+			shader.uniforms.tex0 = tex0.bind()
+			shader.uniforms.tex0Size = [WIDTH, HEIGHT]
+			shader.uniforms.outSize = [shell.element.width, shell.element.height]
+
+			// Update texture
+			shell.gl.texSubImage2D(shell.gl.TEXTURE_2D, 0, 0, 0, WIDTH, HEIGHT, tex0.format, tex0.type, videoBuf)
+
+		  drawTriangle(shell.gl)
+		})
+		</script>
+	</body>
+</html>
