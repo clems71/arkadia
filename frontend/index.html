@@ -29,23 +29,35 @@
 		var createTexture = require("gl-texture2d")
 		var drawTriangle = require("a-big-triangle")
 
-		var ffi = require('ffi')
+		var DL_EXT = '.dylib'
 
-		var genesisCore = ffi.Library('./cores/lib/libcore-genesis', {
-		  'coreCreate': ['pointer', ['string']],
-			'coreDelete': ['void', ['pointer']],
-		  'coreUpdate': ['void', ['pointer']],
-		  'coreVideoData': ['void', ['pointer', 'pointer']],
-			'coreAudioData': ['int', ['pointer', 'pointer']],
-			'coreFrameInterval': ['double', ['pointer']],
-			'coreButtonPressed': ['void', ['pointer', 'int', 'int']],
-			'coreButtonReleased': ['void', ['pointer', 'int', 'int']],
-		})
+		var ROMS = {
+			genesis: {
+				core: './cores/genesis_plus_gx_libretro',
+				rom: '../roms/genesis/01.smd'
+			},
+			snes: {
+				core: './cores/snes9x_libretro',
+				rom: '../roms/snes/01.smc'
+			},
+			psx: {
+				core: './cores/mednafen_psx_libretro',
+				rom: '../roms/psx/01.cue'
+			},
+			mame: {
+				core: './cores/mame_libretro',
+				rom: '../roms/mame/01.zip'
+			}
+		}
 
-		var core = genesisCore.coreCreate('../roms/genesis/mm2.bin')
+		ROM = 'snes'
+
+		var retro = require('../retro-api/build/Release/retro-api')
+		retro.coreInit(ROMS[ROM].core + DL_EXT)
+		retro.coreLoadGame(ROMS[ROM].rom)
 
 		var shell = require("gl-now")({
-			tickRate: genesisCore.coreFrameInterval(core) * 1000,
+			tickRate: 1000.0 / 60.0, // TODO: Should be determined by the core
 			element: document.getElementById('frame')
 		})
 
@@ -96,10 +108,12 @@
 			shell.bind(btn[0], btn[1])
 		}
 
-		var WIDTH = 320
-		var HEIGHT = 224
-
-		var videoBuf = new Uint8Array(WIDTH * HEIGHT * 4)
+		var video = {
+			data: null,
+			width: 0,
+			height: 0,
+			tex: null,
+		}
 
 		var audioBuf = new Buffer(16*1024 * 2)
 		var audioCtx = new AudioContext()
@@ -114,51 +128,53 @@
 
 		shell.on('tick', function() {
 			for (btn of buttons) {
-				if (shell.press(btn[0]) > 0) {
-					genesisCore.coreButtonPressed(core, 0, btn[2])
-				}
-				if (shell.release(btn[0]) > 0) {
-					genesisCore.coreButtonReleased(core, 0, btn[2])
-				}
+				// if (shell.press(btn[0]) > 0) {
+				// 	genesisCore.coreButtonPressed(core, 0, btn[2])
+				// }
+				// if (shell.release(btn[0]) > 0) {
+				// 	genesisCore.coreButtonReleased(core, 0, btn[2])
+				// }
 			}
-			genesisCore.coreUpdate(core)
+			retro.coreUpdate()
 
-			var audioSamples = genesisCore.coreAudioData(core, audioBuf) / 2
-			for (var channel = 0; channel < 2; channel++) {
-				var nowBuffering = audioSrcBuf.getChannelData(channel)
-				for (var i = 0; i < audioSamples; i++) {
-					var sample = audioBuf.readInt16LE(i * 4 + channel * 2)
-					nowBuffering[(i + audioIdx) % 48000] = sample / 32768.0
-				}
-			}
-			audioIdx += audioSamples
-			audioIdx %= 48000
+			// var audioSamples = genesisCore.coreAudioData(core, audioBuf) / 2
+			// for (var channel = 0; channel < 2; channel++) {
+			// 	var nowBuffering = audioSrcBuf.getChannelData(channel)
+			// 	for (var i = 0; i < audioSamples; i++) {
+			// 		var sample = audioBuf.readInt16LE(i * 4 + channel * 2)
+			// 		nowBuffering[(i + audioIdx) % 48000] = sample / 32768.0
+			// 	}
+			// }
+			// audioIdx += audioSamples
+			// audioIdx %= 48000
 
-			if (!audioStarted) {
-				audioSrc.start()
-				audioStarted = true
-			}
+			// if (!audioStarted) {
+				// audioSrc.start()
+				// audioStarted = true
+			// }
 		})
 
-		var tex0
-
 		shell.on("gl-render", function() {
-			genesisCore.coreVideoData(core, videoBuf)
+			var sz = retro.coreVideoSize()
 
-			// Lazy init of texture
-			if (tex0 === undefined) {
-				tex0 = createTexture(shell.gl, [WIDTH, HEIGHT])
+			if (sz.width != video.width || sz.height != video.height) {
+				video.width = sz.width
+				video.height = sz.height
+				video.tex = createTexture(shell.gl, [video.width, video.height])
+				video.data = new Uint8Array(video.width * video.height * 4)
 			}
+
+			retro.coreVideoData(video.data)
 
 			var shader = filters[filterElmt.selectedIndex]
 
 		  shader.bind()
-			shader.uniforms.tex0 = tex0.bind()
-			shader.uniforms.tex0Size = [WIDTH, HEIGHT]
+			shader.uniforms.tex0 = video.tex.bind()
+			shader.uniforms.tex0Size = [video.width, video.height]
 			shader.uniforms.outSize = [shell.element.width, shell.element.height]
 
 			// Update texture
-			shell.gl.texSubImage2D(shell.gl.TEXTURE_2D, 0, 0, 0, WIDTH, HEIGHT, tex0.format, tex0.type, videoBuf)
+			shell.gl.texSubImage2D(shell.gl.TEXTURE_2D, 0, 0, 0, video.width, video.height, video.tex.format, video.tex.type, video.data)
 
 		  drawTriangle(shell.gl)
 		})
