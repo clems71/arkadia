@@ -1,47 +1,19 @@
-# arkadia
+# Arkadia
 
-Arkadia is split in multiple layers:
-- **emulation cores** : core-genesis only for the moment
-- **frontend** : an *Electron* based HTML5 webapp to play games
+## Dependencies
 
-## Emulation cores build
+- CMake 3+
+- Recent io.js
+- Clang 3.6+ on OS X, MSVC 2015 on Windows or GCC 4.8+ on Linux
 
-C++ emulation cores are built using CMake so you need to install it to be able to build these cores.
+## Building the frontend
 
-### OS X
+    cd frontend
+    npm install
 
-Dependencies:
-- Clang 3.6
+## Starting the frontend
 
-To install the genesis core at the right place (next to the frontend), just type the following lines in your console:
-
-        mkdir -p
-        cd build
-        cmake ../core-genesis -DCMAKE_BUILD_TYPE=Release
-        make install -j8
+    npm start
 
 
-### Windows
-
-**TO BE DONE**
-
-
-## Frontend build
-
-Dependencies:
-- Node with npm (v0.12 at least)
-
-        cd frontend
-        npm install && npm run install-fix
-        npm start
-
-## Ideas (unordered)
-
-ROM Web service
-- coin delay
-- description
-- screenshots
-- name
-- console
-
-Electronics USB board for coin system (RFID ?)
+With ❤ from France !

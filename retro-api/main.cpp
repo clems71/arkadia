@@ -94,6 +94,43 @@ void nodeCoreVideoSize(const FunctionCallbackInfo<Value> & args)
   args.GetReturnValue().Set(obj);
 }
 
+void nodeCoreAudioData(const FunctionCallbackInfo<Value> & args)
+{
+  Isolate* isolate = Isolate::GetCurrent();
+  HandleScope scope(isolate);
+
+  if (args.Length() != 0) {
+    isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
+  }
+
+  const auto audioBuf = coreAudioData();
+
+  auto slowBuffer = Buffer::New(audioBuf.size() * 2); // uint16_t hence the factor 2
+  memcpy(Buffer::Data(slowBuffer), &audioBuf[0], audioBuf.size() * 2);
+  args.GetReturnValue().Set(slowBuffer);
+}
+
+void nodeCoreTimings(const FunctionCallbackInfo<Value> & args)
+{
+  Isolate* isolate = Isolate::GetCurrent();
+  HandleScope scope(isolate);
+
+  if (args.Length() != 0) {
+    isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
+  }
+
+  double fps, audioSampleRate;
+  coreTimings(fps, audioSampleRate);
+
+  Local<Object> obj = Object::New(isolate);
+  obj->Set(String::NewFromUtf8(isolate, "fps"), Number::New(isolate, fps));
+  obj->Set(String::NewFromUtf8(isolate, "audio_sample_rate"), Number::New(isolate, audioSampleRate));
+
+  args.GetReturnValue().Set(obj);
+}
+
 void init(Handle<Object> exports)
 {
   NODE_SET_METHOD(exports, "coreInit", nodeCoreInit);
@@ -101,6 +138,8 @@ void init(Handle<Object> exports)
   NODE_SET_METHOD(exports, "coreUpdate", nodeCoreUpdate);
   NODE_SET_METHOD(exports, "coreVideoData", nodeCoreVideoData);
   NODE_SET_METHOD(exports, "coreVideoSize", nodeCoreVideoSize);
+  NODE_SET_METHOD(exports, "coreAudioData", nodeCoreAudioData);
+  NODE_SET_METHOD(exports, "coreTimings", nodeCoreTimings);
 }
 
 NODE_MODULE(retro_api, init)

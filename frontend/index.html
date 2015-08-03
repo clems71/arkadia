@@ -29,12 +29,16 @@
 		var createTexture = require("gl-texture2d")
 		var drawTriangle = require("a-big-triangle")
 
-		var DL_EXT = '.dylib'
+		if (process.platform === 'darwin') {
+			var DL_EXT = '.dylib'
+		} else {
+			var DL_EXT = '.dll'
+		}
 
 		var ROMS = {
 			genesis: {
 				core: './cores/genesis_plus_gx_libretro',
-				rom: '../roms/genesis/01.smd'
+				rom: '../roms/genesis/02.smd'
 			},
 			snes: {
 				core: './cores/snes9x_libretro',
@@ -42,7 +46,7 @@
 			},
 			psx: {
 				core: './cores/mednafen_psx_libretro',
-				rom: '../roms/psx/01.cue'
+				rom: '../roms/psx/mgs.cue'
 			},
 			mame: {
 				core: './cores/mame_libretro',
@@ -52,12 +56,14 @@
 
 		ROM = 'snes'
 
-		var retro = require('../retro-api/build/Release/retro-api')
+		var retro = require('retro-api/build/Release/retro-api')
 		retro.coreInit(ROMS[ROM].core + DL_EXT)
 		retro.coreLoadGame(ROMS[ROM].rom)
 
+		var timings = retro.coreTimings()
+
 		var shell = require("gl-now")({
-			tickRate: 1000.0 / 60.0, // TODO: Should be determined by the core
+			tickRate: 1000.0 / timings.fps,
 			element: document.getElementById('frame')
 		})
 
@@ -115,16 +121,19 @@
 			tex: null,
 		}
 
-		var audioBuf = new Buffer(16*1024 * 2)
+		// AUDIO Setup
+		var audio = {
+			started: false,
+			idx: 0,
+			AUDIO_BUF_LEN: 20000,
+		}
+
 		var audioCtx = new AudioContext()
-		var audioSrcBuf = audioCtx.createBuffer(2, 48000, 48000)
+		var audioSrcBuf = audioCtx.createBuffer(2, audio.AUDIO_BUF_LEN, timings.audio_sample_rate)
 		var audioSrc = audioCtx.createBufferSource()
 		audioSrc.buffer = audioSrcBuf
 		audioSrc.connect(audioCtx.destination)
 		audioSrc.loop = true
-
-		var audioIdx = 0
-		var audioStarted = false
 
 		shell.on('tick', function() {
 			for (btn of buttons) {
@@ -136,22 +145,23 @@
 				// }
 			}
 			retro.coreUpdate()
+			var audioBuf = retro.coreAudioData()
+			var audioSamples = audioBuf.length / 4 // uint16 and 2 channels hence the factor 4
 
-			// var audioSamples = genesisCore.coreAudioData(core, audioBuf) / 2
-			// for (var channel = 0; channel < 2; channel++) {
-			// 	var nowBuffering = audioSrcBuf.getChannelData(channel)
-			// 	for (var i = 0; i < audioSamples; i++) {
-			// 		var sample = audioBuf.readInt16LE(i * 4 + channel * 2)
-			// 		nowBuffering[(i + audioIdx) % 48000] = sample / 32768.0
-			// 	}
-			// }
-			// audioIdx += audioSamples
-			// audioIdx %= 48000
+			for (var channel = 0; channel < 2; channel++) {
+				var nowBuffering = audioSrcBuf.getChannelData(channel)
+				for (var i = 0; i < audioSamples; i++) {
+					var sample = audioBuf.readInt16LE(i * 4 + channel * 2)
+					nowBuffering[(i + audio.idx) % audio.AUDIO_BUF_LEN] = sample / 32768.0
+				}
+			}
+			audio.idx += audioSamples
+			audio.idx %= audio.AUDIO_BUF_LEN
 
-			// if (!audioStarted) {
-				// audioSrc.start()
-				// audioStarted = true
-			// }
+			if (!audio.started) {
+				audioSrc.start()
+				audio.started = true
+			}
 		})
 
 		shell.on("gl-render", function() {

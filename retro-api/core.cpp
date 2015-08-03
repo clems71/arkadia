@@ -8,6 +8,8 @@
 
 std::map<std::string, std::string> gVariables;
 retro_pixel_format gFormat;
+double gFPS = 0.0;
+double gAudioSampleRate = 0.0;
 
 std::string takeFirstValue(const std::string & val)
 {
@@ -102,6 +104,8 @@ bool retro_environment(unsigned cmd, void * data)
 
     case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO: {
       const retro_system_av_info * avInfo = (retro_system_av_info*)data;
+      gFPS = avInfo->timing.fps;
+      gAudioSampleRate = avInfo->timing.sample_rate;
       return true;
     }
 
@@ -134,6 +138,7 @@ namespace
   size_t gWidth = 0;
   size_t gHeight = 0;
   std::vector<uint32_t> gVideoBuf;
+  std::vector<int16_t> gAudioBuf;
 
   // Bind a dynamic library function easily (casting done for you)
   template<typename FType>
@@ -197,12 +202,17 @@ namespace
 
   void retro_audio_sample(int16_t left, int16_t right)
   {
-
+    std::cerr << __FUNCTION__ << " : NYI" << std::endl;
   }
+
+
 
   size_t retro_audio_sample_batch(const int16_t *data, size_t frames)
   {
-    return 0;
+    for (size_t i=0; i<frames*2; i++) {
+      gAudioBuf.push_back(*data++);
+    }
+    return frames;
   }
 
   void retro_input_poll(void)
@@ -259,6 +269,11 @@ void coreLoadGame(const std::string & romPath)
   gi.size = 0;
   gi.meta = NULL;
   retro::load_game(&gi);
+
+  retro_system_av_info avInfo;
+  retro_get_system_av_info(&avInfo);
+  gFPS = avInfo.timing.fps;
+  gAudioSampleRate = avInfo.timing.sample_rate;
 }
 
 void coreUpdate()
@@ -271,4 +286,17 @@ const std::vector<uint32_t> & coreVideoData(size_t & width, size_t & height)
   width = gWidth;
   height = gHeight;
   return gVideoBuf;
+}
+
+std::vector<int16_t> coreAudioData()
+{
+  const auto res = gAudioBuf;
+  gAudioBuf.clear();
+  return res;
+}
+
+void coreTimings(double & fps, double & audioSampleRate)
+{
+  fps = gFPS;
+  audioSampleRate = gAudioSampleRate;
 }

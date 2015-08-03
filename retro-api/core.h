@@ -18,3 +18,7 @@ void coreUpdate();
 // 31 . . . . . . . . . . . . . . . . . . 0
 // AAAA AAAA RRRR RRRR GGGG GGGG BBBB BBBB
 const std::vector<uint32_t> & coreVideoData(size_t & width, size_t & height);
+
+std::vector<int16_t> coreAudioData();
+
+void coreTimings(double & fps, double & audioSampleRate);

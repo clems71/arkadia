@@ -34,3 +34,5 @@
 build
 node_modules
 frontend/cores
+roms/psx
+*.mcr
