@@ -38,7 +38,17 @@
 		var ROMS = {
 			genesis: {
 				core: './cores/genesis_plus_gx_libretro',
-				rom: '../roms/genesis/02.smd'
+				rom: '../roms/genesis/02.smd',
+				joybind: {
+					'A': 'Z',
+					'B': 'X',
+					'C': 'C',
+					'Start': 'enter',
+					'D-Pad Up': 'up',
+					'D-Pad Down': 'down',
+					'D-Pad Left': 'left',
+					'D-Pad Right': 'right',
+				}
 			},
 			snes: {
 				core: './cores/snes9x_libretro',
@@ -46,7 +56,25 @@
 			},
 			psx: {
 				core: './cores/mednafen_psx_libretro',
-				rom: '../roms/psx/mgs.cue'
+				rom: '../roms/psx/mgs.cue',
+				joybind: {
+					'D-Pad Up': 'up',
+					'D-Pad Down': 'down',
+					'D-Pad Left': 'left',
+					'D-Pad Right': 'right',
+					'Select': 'M',
+					'Start': 'enter',
+					'Circle': 'Z',
+					'Triangle': 'X',
+					'Square': 'C',
+					'Cross': 'V',
+					// 'L1': 'C',
+					// 'R1': 'V',
+					'L2': 'A',
+					'R2': 'S',
+					// Right Analog X,Right Analog Y
+					// L3,R3
+				}
 			},
 			mame: {
 				core: './cores/mame_libretro',
@@ -54,11 +82,18 @@
 			}
 		}
 
-		ROM = 'snes'
+		ROM = 'psx'
 
-		var retro = require('retro-api/build/Release/retro-api')
+		try {
+			var retro = require('../retro-api/build/Release/retro-api')
+		} catch (e) {
+			var retro = require('retro-api/build/Release/retro-api')
+		}
+
 		retro.coreInit(ROMS[ROM].core + DL_EXT)
+		console.log(retro.coreSettingsDesc())
 		retro.coreLoadGame(ROMS[ROM].rom)
+		console.log(retro.coreJoypadDesc())
 
 		var timings = retro.coreTimings()
 
@@ -99,19 +134,9 @@
 		// 	core = genesisCore.coreCreate('../roms/genesis/mm2.bin')
 		// }, 4000)
 
-		buttons = [
-			['button-up', 'up', 0],
-			['button-down', 'down', 1],
-			['button-left', 'left', 2],
-			['button-right', 'right', 3],
-			['button-a', 'Z', 4],
-			['button-b', 'X', 5],
-			['button-c', 'C', 6],
-			['button-enter', 'enter', 7],
-		]
 
-		for (btn of buttons) {
-			shell.bind(btn[0], btn[1])
+		for (k in ROMS[ROM].joybind) {
+			shell.bind(k, ROMS[ROM].joybind[k])
 		}
 
 		var video = {
@@ -136,15 +161,16 @@
 		audioSrc.loop = true
 
 		shell.on('tick', function() {
-			for (btn of buttons) {
-				// if (shell.press(btn[0]) > 0) {
-				// 	genesisCore.coreButtonPressed(core, 0, btn[2])
-				// }
-				// if (shell.release(btn[0]) > 0) {
-				// 	genesisCore.coreButtonReleased(core, 0, btn[2])
-				// }
+			// Joypad
+			for (k in ROMS[ROM].joybind) {
+				if (shell.press(k) > 0) retro.coreJoypadPress(k)
+				if (shell.release(k) > 0) retro.coreJoypadRelease(k)
 			}
+
+			// Core update
 			retro.coreUpdate()
+
+			// Audio update
 			var audioBuf = retro.coreAudioData()
 			var audioSamples = audioBuf.length / 4 // uint16 and 2 channels hence the factor 4
 

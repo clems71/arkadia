@@ -3,25 +3,66 @@
 #include <dlfcn.h>
 #include <iostream>
 #include <map>
+#include <tuple>
 
 #include "retro.h"
 
-std::map<std::string, std::string> gVariables;
-retro_pixel_format gFormat;
-double gFPS = 0.0;
-double gAudioSampleRate = 0.0;
 
-std::string takeFirstValue(const std::string & val)
+namespace
 {
+
+  struct CoreState
+  {
+    CoreState(const std::string & corePath)
+    {
+      dlHandle = dlopen(corePath.c_str(), RTLD_LAZY);
+    }
+
+    ~CoreState()
+    {
+      if (dlHandle) dlclose(dlHandle);
+    }
+
+    void * dlHandle = nullptr;
+    SettingsDesc settingsDesc;
+    std::map<std::string, std::string> settings;
+    double fps = 0.0;
+    double audioSampleRate = 0.0;
+    retro_pixel_format format = RETRO_PIXEL_FORMAT_UNKNOWN;
+    size_t width = 0;
+    size_t height = 0;
+    std::vector<uint32_t> videoBuf;
+    std::vector<int16_t> audioBuf;
+
+    typedef std::tuple<size_t, size_t, size_t> JoypadId;
+    typedef std::map<JoypadId, std::string> JoypadDesc;
+    std::vector<JoypadDesc> joypads;
+
+    typedef std::map<std::string, bool> JoypadState;
+    std::vector<JoypadState> joypadsState;
+  };
+
+  std::unique_ptr<CoreState> gCoreState;
+
+} // anonymous namespace
+
+
+std::string settingsName(const std::string & val)
+{
+  return std::string(val.begin(), std::find(val.begin(), val.end(), ';'));
+}
+
+std::vector<std::string> settingsChoices(const std::string & val)
+{
+  std::vector<std::string> result;
   const char * p = val.c_str();
   while (*p++ != ';');
-  p++; // Whitespace to skip
-  const char * pStart = p;
-  while (*p++ != '|');
-  const char * pEnd = p;
-  std::string res(pStart, pEnd-1);
-  // cout << res << endl;
-  return res;
+  while (*p) {
+    const char * pStart = ++p;
+    while (*p != 0x00 && *p != '|') p++;
+    result.push_back(std::string(pStart, p));
+  }
+  return result;
 }
 
 #define CORE_LIBRARY_BIND(name) \
@@ -64,9 +105,13 @@ bool retro_environment(unsigned cmd, void * data)
     case RETRO_ENVIRONMENT_SET_VARIABLES: {
       retro_variable * variables = (retro_variable *)data;
       while (variables->key) {
-        gVariables[variables->key] = takeFirstValue(variables->value);
-        std::cout << variables->key << std::endl;
-        std::cout << variables->value << std::endl;
+        SettingsEntryDesc sed = SettingsEntryDesc {
+          .key = variables->key,
+          .name = settingsName(variables->value),
+          .choices = settingsChoices(variables->value),
+        };
+        gCoreState->settingsDesc.push_back(sed);
+        gCoreState->settings[sed.key] = sed.choices[0];
         variables++;
       }
       return true;
@@ -74,7 +119,7 @@ bool retro_environment(unsigned cmd, void * data)
 
     case RETRO_ENVIRONMENT_GET_VARIABLE: {
       retro_variable * variable = (retro_variable *)data;
-      variable->value = gVariables[variable->key].c_str();
+      variable->value = gCoreState->settings[variable->key].c_str();
       return true;
     }
 
@@ -97,15 +142,15 @@ bool retro_environment(unsigned cmd, void * data)
     }
 
     case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT: {
-      gFormat = *(retro_pixel_format *)data;
-      std::cout << "Format is " << gFormat << std::endl;
+      gCoreState->format = *(retro_pixel_format *)data;
+      std::cout << "Format is " << gCoreState->format << std::endl;
       return true;
     }
 
     case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO: {
       const retro_system_av_info * avInfo = (retro_system_av_info*)data;
-      gFPS = avInfo->timing.fps;
-      gAudioSampleRate = avInfo->timing.sample_rate;
+      gCoreState->fps = avInfo->timing.fps;
+      gCoreState->audioSampleRate = avInfo->timing.sample_rate;
       return true;
     }
 
@@ -115,8 +160,40 @@ bool retro_environment(unsigned cmd, void * data)
       return true;
     }
 
+    case RETRO_ENVIRONMENT_SET_CONTROLLER_INFO: {
+      // TODO: Use this info!!!
+      retro_controller_info * ctrlInfo = (retro_controller_info *)data;
+      for (size_t i=0; i<ctrlInfo->num_types; i++) {
+        const auto type = ctrlInfo->types[i];
+        std::cout << "Controller type : " << type.desc << std::endl;
+      }
+      return true;
+    }
+
+    case RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS: {
+      retro_input_descriptor * inputDesc = (retro_input_descriptor *)data;
+      size_t i = 0;
+      while (inputDesc[i].description) {
+        const auto & cur = inputDesc[i];
+
+        if (!cur.port) {
+          std::cout << cur.description << '-' << cur.device << '-' << cur.index << '-' << cur.id << std::endl;
+        }
+
+        // Set joypad desc
+        gCoreState->joypads.resize(cur.port + 1);
+        gCoreState->joypads[cur.port][std::make_tuple(cur.device, cur.id, cur.index)] = cur.description;
+
+        // Set default state
+        gCoreState->joypadsState.resize(cur.port + 1);
+        gCoreState->joypadsState[cur.port][cur.description] = false;
+        i++;
+      }
+      return true;
+    }
+
     default:
-      std::cout << ">> COMMAND = " << cmd << std::endl;
+      // std::cout << ">> COMMAND = " << cmd << std::endl;
       return false;
   }
 }
@@ -134,17 +211,11 @@ CORE_LIBRARY_DECL(get_system_info);
 
 namespace
 {
-  void * gDlHandle = nullptr;
-  size_t gWidth = 0;
-  size_t gHeight = 0;
-  std::vector<uint32_t> gVideoBuf;
-  std::vector<int16_t> gAudioBuf;
-
   // Bind a dynamic library function easily (casting done for you)
   template<typename FType>
   void coreBind(FType & f, const std::string & funcName)
   {
-    f = (FType)dlsym(gDlHandle, funcName.c_str());
+    f = (FType)dlsym(gCoreState->dlHandle, funcName.c_str());
     if (f == nullptr) std::cerr << "Cannot load " << funcName << std::endl;
   }
 
@@ -174,15 +245,15 @@ namespace
     // std::cout << width << 'x' << height << " - " << pitch << std::endl;
 
     const uint8_t * vData = (const uint8_t *)data;
-    gWidth = width;
-    gHeight = height;
-    gVideoBuf.resize(width * height);
+    gCoreState->width = width;
+    gCoreState->height = height;
+    gCoreState->videoBuf.resize(width * height);
 
-    switch (gFormat) {
+    switch (gCoreState->format) {
       case RETRO_PIXEL_FORMAT_RGB565:
         for (size_t y=0; y<height; y++) {
           for (size_t x=0; x<width; x++) {
-            gVideoBuf[width * y + x] = rgb565_to_xrgb8888(*(uint16_t*)&vData[x * 2]);
+            gCoreState->videoBuf[width * y + x] = rgb565_to_xrgb8888(*(uint16_t*)&vData[x * 2]);
           }
           vData += pitch;
         }
@@ -190,7 +261,7 @@ namespace
       case RETRO_PIXEL_FORMAT_XRGB8888:
         for (size_t y=0; y<height; y++) {
           for (size_t x=0; x<width; x++) {
-            gVideoBuf[width * y + x] = xbgr8888_to_xrgb8888(*(uint32_t*)&vData[x * 4]);
+            gCoreState->videoBuf[width * y + x] = xbgr8888_to_xrgb8888(*(uint32_t*)&vData[x * 4]);
           }
           vData += pitch;
         }
@@ -205,37 +276,35 @@ namespace
     std::cerr << __FUNCTION__ << " : NYI" << std::endl;
   }
 
-
-
   size_t retro_audio_sample_batch(const int16_t *data, size_t frames)
   {
     for (size_t i=0; i<frames*2; i++) {
-      gAudioBuf.push_back(*data++);
+      gCoreState->audioBuf.push_back(*data++);
     }
     return frames;
   }
 
   void retro_input_poll(void)
   {
+    // std::cout << "Poll" << std::endl;
   }
 
   int16_t retro_input_state(unsigned port, unsigned device, unsigned index, unsigned id)
   {
-    return 0;
+    return gCoreState->joypadsState[port][gCoreState->joypads[port][std::make_tuple(device, id, index)]] ? 1 : 0;
   }
 
 } // anonymous namespace
 
 void coreClose()
 {
-  if (gDlHandle) dlclose(gDlHandle);
-  gDlHandle = nullptr;
+  gCoreState.reset();
 }
 
 void coreInit(const std::string & corePath)
 {
   coreClose(); // Close any previously opened core
-  gDlHandle = dlopen(corePath.c_str(), RTLD_LAZY);
+  gCoreState.reset(new CoreState(corePath));
 
   CORE_LIBRARY_BIND(init);
   CORE_LIBRARY_BIND(run);
@@ -272,8 +341,8 @@ void coreLoadGame(const std::string & romPath)
 
   retro_system_av_info avInfo;
   retro_get_system_av_info(&avInfo);
-  gFPS = avInfo.timing.fps;
-  gAudioSampleRate = avInfo.timing.sample_rate;
+  gCoreState->fps = avInfo.timing.fps;
+  gCoreState->audioSampleRate = avInfo.timing.sample_rate;
 }
 
 void coreUpdate()
@@ -283,20 +352,50 @@ void coreUpdate()
 
 const std::vector<uint32_t> & coreVideoData(size_t & width, size_t & height)
 {
-  width = gWidth;
-  height = gHeight;
-  return gVideoBuf;
+  width = gCoreState->width;
+  height = gCoreState->height;
+  return gCoreState->videoBuf;
 }
 
 std::vector<int16_t> coreAudioData()
 {
-  const auto res = gAudioBuf;
-  gAudioBuf.clear();
+  const auto res = gCoreState->audioBuf;
+  gCoreState->audioBuf.clear();
   return res;
 }
 
 void coreTimings(double & fps, double & audioSampleRate)
 {
-  fps = gFPS;
-  audioSampleRate = gAudioSampleRate;
+  fps = gCoreState->fps;
+  audioSampleRate = gCoreState->audioSampleRate;
+}
+
+SettingsDesc coreSettingsDesc()
+{
+  return gCoreState->settingsDesc;
+}
+
+void coreSettingsSet(const std::string & key, const std::string & value)
+{
+  gCoreState->settings[key] = value;
+}
+
+std::vector<std::string> coreJoypadDesc()
+{
+  std::vector<std::string> result;
+  if (gCoreState->joypads.empty()) return result;
+  for (const auto & pair : gCoreState->joypads[0]) {
+    result.push_back(pair.second);
+  }
+  return result;
+}
+
+void coreJoypadPress(const std::string & name)
+{
+  gCoreState->joypadsState[0][name] = true;
+}
+
+void coreJoypadRelease(const std::string & name)
+{
+  gCoreState->joypadsState[0][name] = false;
 }

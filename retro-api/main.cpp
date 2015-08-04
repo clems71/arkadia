@@ -131,6 +131,100 @@ void nodeCoreTimings(const FunctionCallbackInfo<Value> & args)
   args.GetReturnValue().Set(obj);
 }
 
+void nodeCoreSettingsSet(const FunctionCallbackInfo<Value> & args)
+{
+  Isolate* isolate = Isolate::GetCurrent();
+  HandleScope scope(isolate);
+
+  if (args.Length() != 2) {
+    isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
+  }
+
+  v8::String::Utf8Value key(args[0]->ToString());
+  v8::String::Utf8Value val(args[1]->ToString());
+  coreSettingsSet(*key, *val);
+}
+
+void nodeCoreSettingsDesc(const FunctionCallbackInfo<Value> & args)
+{
+  Isolate* isolate = Isolate::GetCurrent();
+  HandleScope scope(isolate);
+
+  if (args.Length() != 0) {
+    isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
+  }
+
+  const auto d = coreSettingsDesc();
+
+  Local<Object> obj = Object::New(isolate);
+
+  for (const auto & settingsDescEntry : d) {
+    Local<Array> choices = Array::New(isolate, settingsDescEntry.choices.size());
+    for (size_t i=0; i<settingsDescEntry.choices.size(); i++) {
+      choices->Set(i, String::NewFromUtf8(isolate, settingsDescEntry.choices[i].c_str()));
+    }
+
+    Local<Object> objEntry = Object::New(isolate);
+    objEntry->Set(String::NewFromUtf8(isolate, "name"), String::NewFromUtf8(isolate, settingsDescEntry.name.c_str()));
+    objEntry->Set(String::NewFromUtf8(isolate, "choices"), choices);
+
+    obj->Set(String::NewFromUtf8(isolate, settingsDescEntry.key.c_str()), objEntry);
+  }
+
+  args.GetReturnValue().Set(obj);
+}
+
+void nodeCoreJoypadDesc(const FunctionCallbackInfo<Value> & args)
+{
+  Isolate* isolate = Isolate::GetCurrent();
+  HandleScope scope(isolate);
+
+  if (args.Length() != 0) {
+    isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
+  }
+
+  Local<Array> res = Array::New(isolate, coreJoypadDesc().size());
+
+  size_t i = 0;
+  for (const auto & name : coreJoypadDesc()) {
+    res->Set(i++, String::NewFromUtf8(isolate, name.c_str()));
+  }
+
+  args.GetReturnValue().Set(res);
+}
+
+void nodeCoreJoypadPress(const FunctionCallbackInfo<Value> & args)
+{
+  Isolate* isolate = Isolate::GetCurrent();
+  HandleScope scope(isolate);
+
+  if (args.Length() != 1) {
+    isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
+  }
+
+  v8::String::Utf8Value name(args[0]->ToString());
+  coreJoypadPress(*name);
+}
+
+void nodeCoreJoypadRelease(const FunctionCallbackInfo<Value> & args)
+{
+  Isolate* isolate = Isolate::GetCurrent();
+  HandleScope scope(isolate);
+
+  if (args.Length() != 1) {
+    isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
+  }
+
+  v8::String::Utf8Value name(args[0]->ToString());
+  coreJoypadRelease(*name);
+}
+
+
 void init(Handle<Object> exports)
 {
   NODE_SET_METHOD(exports, "coreInit", nodeCoreInit);
@@ -140,6 +234,13 @@ void init(Handle<Object> exports)
   NODE_SET_METHOD(exports, "coreVideoSize", nodeCoreVideoSize);
   NODE_SET_METHOD(exports, "coreAudioData", nodeCoreAudioData);
   NODE_SET_METHOD(exports, "coreTimings", nodeCoreTimings);
+
+  NODE_SET_METHOD(exports, "coreSettingsSet", nodeCoreSettingsSet);
+  NODE_SET_METHOD(exports, "coreSettingsDesc", nodeCoreSettingsDesc);
+
+  NODE_SET_METHOD(exports, "coreJoypadDesc", nodeCoreJoypadDesc);
+  NODE_SET_METHOD(exports, "coreJoypadPress", nodeCoreJoypadPress);
+  NODE_SET_METHOD(exports, "coreJoypadRelease", nodeCoreJoypadRelease);
 }
 
 NODE_MODULE(retro_api, init)
