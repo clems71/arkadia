@@ -20,14 +20,14 @@
 		</style>
 	</head>
 	<body>
-		<div id="frame">
-		</div>
+		<div id="frame"></div>
 		<select id="selectFilter"></select>
 		<script>
-		var fs = require('fs')
-		var createShader = require("gl-shader")
-		var createTexture = require("gl-texture2d")
-		var drawTriangle = require("a-big-triangle")
+		'use strict'
+
+		let fs = require('fs')
+		let createShader = require("gl-shader")
+		let createTexture = require("gl-texture2d")
 
 		if (process.platform === 'darwin') {
 			var DL_EXT = '.dylib'
@@ -35,7 +35,7 @@
 			var DL_EXT = '.dll'
 		}
 
-		var ROMS = {
+		const ROMS = {
 			genesis: {
 				core: './cores/genesis_plus_gx_libretro',
 				rom: '../roms/genesis/02.smd',
@@ -52,7 +52,8 @@
 			},
 			snes: {
 				core: './cores/snes9x_libretro',
-				rom: '../roms/snes/01.smc'
+				rom: '../roms/snes/01.smc',
+				joybind: {}
 			},
 			psx: {
 				core: './cores/mednafen_psx_libretro',
@@ -78,11 +79,12 @@
 			},
 			mame: {
 				core: './cores/mame_libretro',
-				rom: '../roms/mame/01.zip'
+				rom: '../roms/mame/01.zip',
+				joybind: {}
 			}
 		}
 
-		ROM = 'psx'
+		const ROM = 'psx'
 
 		try {
 			var retro = require('../retro-api/build/Release/retro-api')
@@ -95,10 +97,10 @@
 		retro.coreLoadGame(ROMS[ROM].rom)
 		console.log(retro.coreJoypadDesc())
 
-		var timings = retro.coreTimings()
+		let timings = retro.coreTimings()
 
-		var shell = require("gl-now")({
-			tickRate: 1000.0 / timings.fps,
+		let shell = require("gl-now")({
+			tickRate: 1000.0 / timings.fps, // period in ms
 			element: document.getElementById('frame')
 		})
 
@@ -135,7 +137,7 @@
 		// }, 4000)
 
 
-		for (k in ROMS[ROM].joybind) {
+		for (let k in ROMS[ROM].joybind) {
 			shell.bind(k, ROMS[ROM].joybind[k])
 		}
 
@@ -144,6 +146,7 @@
 			width: 0,
 			height: 0,
 			tex: null,
+			quad: null,
 		}
 
 		// AUDIO Setup
@@ -162,7 +165,7 @@
 
 		shell.on('tick', function() {
 			// Joypad
-			for (k in ROMS[ROM].joybind) {
+			for (let k in ROMS[ROM].joybind) {
 				if (shell.press(k) > 0) retro.coreJoypadPress(k)
 				if (shell.release(k) > 0) retro.coreJoypadRelease(k)
 			}
@@ -193,10 +196,16 @@
 		shell.on("gl-render", function() {
 			var sz = retro.coreVideoSize()
 
+			if (video.quad == null) {
+				video.quad = require('gl-quad')(shell.gl)
+			}
+
 			if (sz.width != video.width || sz.height != video.height) {
 				video.width = sz.width
 				video.height = sz.height
 				video.tex = createTexture(shell.gl, [video.width, video.height])
+				// video.tex.magFilter = shell.gl.LINEAR
+				// video.tex.minFilter = shell.gl.LINEAR
 				video.data = new Uint8Array(video.width * video.height * 4)
 			}
 
@@ -204,15 +213,27 @@
 
 			var shader = filters[filterElmt.selectedIndex]
 
+			const scaleX = shell.width / video.width
+			const scaleY = shell.height / video.height
+
+			if (scaleX < scaleY) {
+				var scaleXY = [video.width * scaleX / shell.width, video.height * scaleX / shell.height]
+				var outSize = [video.width * scaleX, video.height * scaleX];
+			} else {
+				var scaleXY = [video.width * scaleY / shell.width, video.height * scaleY / shell.height]
+				var outSize = [video.width * scaleY, video.height * scaleY];
+			}
+
 		  shader.bind()
 			shader.uniforms.tex0 = video.tex.bind()
 			shader.uniforms.tex0Size = [video.width, video.height]
-			shader.uniforms.outSize = [shell.element.width, shell.element.height]
+			shader.uniforms.outSize = outSize
+			shader.uniforms.scaleXY = scaleXY
 
 			// Update texture
 			shell.gl.texSubImage2D(shell.gl.TEXTURE_2D, 0, 0, 0, video.width, video.height, video.tex.format, video.tex.type, video.data)
 
-		  drawTriangle(shell.gl)
+		  video.quad.draw()
 		})
 		</script>
 	</body>

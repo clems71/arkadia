@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "main": "main.js",
   "dependencies": {
+    "gl-now": "^1.4.0",
+    "gl-quad": "^1.1.2",
     "gl-shader": "^4.0.5",
     "gl-texture2d": "^2.0.9",
-    "a-big-triangle": "^1.0.2",
-    "gl-now": "^1.4.0",
     "retro-api": "file:../retro-api"
   },
   "devDependencies": {

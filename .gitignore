@@ -35,4 +35,6 @@ build
 node_modules
 frontend/cores
 roms/psx
+roms/mame
 *.mcr
+*.log

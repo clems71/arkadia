@@ -3,6 +3,7 @@ precision mediump float;
 attribute vec2 position;
 
 uniform vec2 tex0Size;
+uniform vec2 scaleXY;
 
 varying vec2 uv;
 varying vec4 xyp_1_2_3;
@@ -26,5 +27,5 @@ void main() {
   xyp_5_10_15  = uv.xyyy + vec4(-2.0 * x,  -y, 0.0,        y);
   xyp_9_14_9   = uv.xyyy + vec4( 2.0 * x,  -y, 0.0,        y);
 
-  gl_Position = vec4(position.xy, 0.0, 1.0);
+  gl_Position = vec4(position.xy * scaleXY, 0.0, 1.0);
 }

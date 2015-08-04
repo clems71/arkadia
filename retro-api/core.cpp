@@ -176,9 +176,9 @@ bool retro_environment(unsigned cmd, void * data)
       while (inputDesc[i].description) {
         const auto & cur = inputDesc[i];
 
-        if (!cur.port) {
-          std::cout << cur.description << '-' << cur.device << '-' << cur.index << '-' << cur.id << std::endl;
-        }
+        // if (!cur.port) {
+        //   std::cout << cur.description << '-' << cur.device << '-' << cur.index << '-' << cur.id << std::endl;
+        // }
 
         // Set joypad desc
         gCoreState->joypads.resize(cur.port + 1);
