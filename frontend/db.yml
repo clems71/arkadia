@@ -12,6 +12,16 @@ __joydefs:
     D-Pad Left: kb:left
     D-Pad Right: kb:right
 
+  joysnes: &joysnes
+    A: kb:Z
+    B: kb:X
+    X: kb:C
+    Y: kb:V
+    D-Pad Up: kb:up
+    D-Pad Down: kb:down
+    D-Pad Left: kb:left
+    D-Pad Right: kb:right
+
   joypsx: &joypsx
     D-Pad Up: kb:up
     D-Pad Down: kb:down
@@ -40,8 +50,12 @@ mgs:
 mario:
   core: ./cores/snes9x_libretro
   rom: ../roms/snes/01.smc
-  joybind:
+  joybind: *joysnes
 
+mslug:
+  core: ./cores/fb_alpha_libretro
+  rom: ../roms/mame/mslug.zip
+  joybind: {}
 #   },
 #   "psx": {
 #     "core": "./cores/pcsx_rearmed_libretro",

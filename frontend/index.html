@@ -25,6 +25,7 @@
 		<script>
 		'use strict'
 
+		let path = require('path')
 		let fs = require('fs')
 		let yaml = require('js-yaml')
 		let createShader = require("gl-shader")
@@ -43,7 +44,9 @@
 		const ROMS = yaml.safeLoad(fs.readFileSync('./db.yml', 'utf8'))
 
 		// const ROM = 'micro-machine'
-		const ROM = 'mgs'
+		// const ROM = 'mario'
+		const ROM = 'mslug'
+		// const ROM = 'mgs'
 
 		try {
 			var retro = require('../retro-api/build/Release/retro-api')
@@ -53,7 +56,7 @@
 
 		retro.coreInit(ROMS[ROM].core + DL_EXT)
 		console.log(retro.coreSettingsDesc())
-		retro.coreLoadGame(ROMS[ROM].rom)
+		retro.coreLoadGame(path.resolve(ROMS[ROM].rom))
 		console.log(retro.coreJoypadDesc())
 
 		let timings = retro.coreTimings()

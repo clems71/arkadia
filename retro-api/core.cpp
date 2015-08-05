@@ -1,10 +1,11 @@
 #include "core.h"
 
-#include <dlfcn.h>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <tuple>
 
+#include "dynload.h"
 #include "retro.h"
 
 
@@ -15,15 +16,15 @@ namespace
   {
     CoreState(const std::string & corePath)
     {
-      dlHandle = dlopen(corePath.c_str(), RTLD_LAZY);
+      dlHandle = dynLibOpen(corePath);
     }
 
     ~CoreState()
     {
-      if (dlHandle) dlclose(dlHandle);
+      dynLibClose(dlHandle);
     }
 
-    void * dlHandle = nullptr;
+    dynlib_t dlHandle;
     SettingsDesc settingsDesc;
     std::map<std::string, std::string> settings;
     double fps = 0.0;
@@ -106,9 +107,9 @@ bool retro_environment(unsigned cmd, void * data)
       retro_variable * variables = (retro_variable *)data;
       while (variables->key) {
         SettingsEntryDesc sed = SettingsEntryDesc {
-          .key = variables->key,
-          .name = settingsName(variables->value),
-          .choices = settingsChoices(variables->value),
+          variables->key,
+          settingsName(variables->value),
+          settingsChoices(variables->value),
         };
         gCoreState->settingsDesc.push_back(sed);
         gCoreState->settings[sed.key] = sed.choices[0];
@@ -208,6 +209,7 @@ CORE_LIBRARY_DECL(set_audio_sample_batch);
 CORE_LIBRARY_DECL(set_input_poll);
 CORE_LIBRARY_DECL(set_input_state);
 CORE_LIBRARY_DECL(get_system_info);
+CORE_LIBRARY_DECL(get_system_av_info);
 CORE_LIBRARY_DECL(serialize_size);
 CORE_LIBRARY_DECL(serialize);
 CORE_LIBRARY_DECL(unserialize);
@@ -218,7 +220,7 @@ namespace
   template<typename FType>
   void coreBind(FType & f, const std::string & funcName)
   {
-    f = (FType)dlsym(gCoreState->dlHandle, funcName.c_str());
+    f = (FType)dynLibGetSymbolPtr(gCoreState->dlHandle, funcName);
     if (f == nullptr) std::cerr << "Cannot load " << funcName << std::endl;
   }
 
@@ -319,6 +321,7 @@ void coreInit(const std::string & corePath)
   CORE_LIBRARY_BIND(set_input_poll);
   CORE_LIBRARY_BIND(set_input_state);
   CORE_LIBRARY_BIND(get_system_info);
+  CORE_LIBRARY_BIND(get_system_av_info);
   CORE_LIBRARY_BIND(serialize_size);
   CORE_LIBRARY_BIND(serialize);
   CORE_LIBRARY_BIND(unserialize);
@@ -346,7 +349,7 @@ void coreLoadGame(const std::string & romPath)
   retro::load_game(&gi);
 
   retro_system_av_info avInfo;
-  retro_get_system_av_info(&avInfo);
+  retro::get_system_av_info(&avInfo);
   gCoreState->fps = avInfo.timing.fps;
   gCoreState->audioSampleRate = avInfo.timing.sample_rate;
 }

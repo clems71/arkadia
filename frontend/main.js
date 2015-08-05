@@ -20,7 +20,12 @@ app.commandLine.appendSwitch('js-flags', '--harmony_arrow_functions');
 // initialization and ready for creating browser windows.
 app.on('ready', function() {
   // Create the browser window.
-  mainWindow = new BrowserWindow({width: 1280, height: 720, title: 'Arkadia'});
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 720,
+    title: 'Arkadia',
+    'auto-hide-menu-bar': true,
+  });
 
   // and load the index.html of the app.
   mainWindow.loadUrl('file://' + __dirname + '/index.html');
