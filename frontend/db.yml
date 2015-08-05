@@ -7,6 +7,7 @@ __joydefs:
       - kb:X
       - pad:2
     C: kb:C
+    Start: kb:enter
     D-Pad Up: kb:up
     D-Pad Down: kb:down
     D-Pad Left: kb:left
@@ -17,6 +18,7 @@ __joydefs:
     B: kb:X
     X: kb:C
     Y: kb:V
+    Start: kb:enter
     D-Pad Up: kb:up
     D-Pad Down: kb:down
     D-Pad Left: kb:left
@@ -40,6 +42,11 @@ __joydefs:
 micro-machine:
   core: ./cores/genesis_plus_gx_libretro
   rom: ../roms/genesis/03.smd
+  joybind: *joygenesis
+
+sonic:
+  core: ./cores/genesis_plus_gx_libretro
+  rom: ../roms/genesis/02.smd
   joybind: *joygenesis
 
 mgs:
