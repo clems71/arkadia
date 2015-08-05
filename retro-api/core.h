@@ -68,3 +68,9 @@ void coreSettingsSet(const std::string & key, const std::string & value);
 std::vector<std::string> coreJoypadDesc();
 void coreJoypadPress(const std::string & name);
 void coreJoypadRelease(const std::string & name);
+
+// SAVE STATE
+//--------------------------------------------------------------------------------------------------
+
+std::vector<uint8_t> coreSaveState();
+bool coreRestoreState(const char * data, size_t sz);

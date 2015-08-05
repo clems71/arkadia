@@ -1,0 +1,57 @@
+__joydefs:
+  joygenesis: &joygenesis
+    A:
+      - kb:Z
+      - pad:1
+    B:
+      - kb:X
+      - pad:2
+    C: kb:C
+    D-Pad Up: kb:up
+    D-Pad Down: kb:down
+    D-Pad Left: kb:left
+    D-Pad Right: kb:right
+
+  joypsx: &joypsx
+    D-Pad Up: kb:up
+    D-Pad Down: kb:down
+    D-Pad Left: kb:left
+    D-Pad Right: kb:right
+    Select: kb:M
+    Start: kb:enter
+    Circle: kb:Z
+    Triangle: kb:X
+    Square: kb:C
+    Cross: kb:V
+    L2: kb:A
+    R2: kb:S
+
+
+micro-machine:
+  core: ./cores/genesis_plus_gx_libretro
+  rom: ../roms/genesis/03.smd
+  joybind: *joygenesis
+
+mgs:
+  core: ./cores/pcsx_rearmed_libretro
+  rom: ../roms/psx/mgs.cue
+  joybind: *joypsx
+
+mario:
+  core: ./cores/snes9x_libretro
+  rom: ../roms/snes/01.smc
+  joybind:
+
+#   },
+#   "psx": {
+#     "core": "./cores/pcsx_rearmed_libretro",
+#     "rom": "../roms/psx/mgs.cue",
+#     "joybind": {
+#     }
+#   },
+#   "mame": {
+#     "core": "./cores/mame_libretro",
+#     "rom": "../roms/mame/01.zip",
+#     "joybind": {}
+#   }
+# }

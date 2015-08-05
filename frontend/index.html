@@ -26,8 +26,13 @@
 		'use strict'
 
 		let fs = require('fs')
+		let yaml = require('js-yaml')
 		let createShader = require("gl-shader")
 		let createTexture = require("gl-texture2d")
+
+		let ArkadiaPad = require('./arkadia-pad')
+		let KeyboardPad = require('./keyboard-pad')
+		let InputSystem = require('./input-system')
 
 		if (process.platform === 'darwin') {
 			var DL_EXT = '.dylib'
@@ -35,56 +40,10 @@
 			var DL_EXT = '.dll'
 		}
 
-		const ROMS = {
-			genesis: {
-				core: './cores/genesis_plus_gx_libretro',
-				rom: '../roms/genesis/02.smd',
-				joybind: {
-					'A': 'Z',
-					'B': 'X',
-					'C': 'C',
-					'Start': 'enter',
-					'D-Pad Up': 'up',
-					'D-Pad Down': 'down',
-					'D-Pad Left': 'left',
-					'D-Pad Right': 'right',
-				}
-			},
-			snes: {
-				core: './cores/snes9x_libretro',
-				rom: '../roms/snes/01.smc',
-				joybind: {}
-			},
-			psx: {
-				core: './cores/mednafen_psx_libretro',
-				rom: '../roms/psx/mgs.cue',
-				joybind: {
-					'D-Pad Up': 'up',
-					'D-Pad Down': 'down',
-					'D-Pad Left': 'left',
-					'D-Pad Right': 'right',
-					'Select': 'M',
-					'Start': 'enter',
-					'Circle': 'Z',
-					'Triangle': 'X',
-					'Square': 'C',
-					'Cross': 'V',
-					// 'L1': 'C',
-					// 'R1': 'V',
-					'L2': 'A',
-					'R2': 'S',
-					// Right Analog X,Right Analog Y
-					// L3,R3
-				}
-			},
-			mame: {
-				core: './cores/mame_libretro',
-				rom: '../roms/mame/01.zip',
-				joybind: {}
-			}
-		}
+		const ROMS = yaml.safeLoad(fs.readFileSync('./db.yml', 'utf8'))
 
-		const ROM = 'psx'
+		// const ROM = 'micro-machine'
+		const ROM = 'mgs'
 
 		try {
 			var retro = require('../retro-api/build/Release/retro-api')
@@ -137,9 +96,44 @@
 		// }, 4000)
 
 
+		let inputSystem = new InputSystem()
+		inputSystem.register('pad:', new ArkadiaPad())
+		inputSystem.register('kb:', new KeyboardPad(shell))
+
+		// Button bindings
 		for (let k in ROMS[ROM].joybind) {
-			shell.bind(k, ROMS[ROM].joybind[k])
+			inputSystem.bind(k, ROMS[ROM].joybind[k])
 		}
+		// Extra shortcuts
+		inputSystem.bind('Save state', 'kb:0')
+		inputSystem.bind('Restore state', 'kb:1')
+
+		const GAME_KEYS = Object.keys(ROMS[ROM].joybind)
+
+		// Joypad handling
+		inputSystem.on('pressed', function(k) {
+			// console.log(`${k} pressed`)
+
+			if (GAME_KEYS.indexOf(k) >= 0) {
+				retro.coreJoypadPress(k)
+			}
+			// Save state feature
+			else if (k == 'Save state') {
+				console.log('State saved')
+				fs.writeFileSync(ROMS[ROM].rom + '.state', retro.coreStateSave())
+			}
+			else if (k == 'Restore state') {
+				retro.coreStateRestore(fs.readFileSync(ROMS[ROM].rom + '.state'))
+				console.log('State restored')
+			}
+		})
+
+		inputSystem.on('released', function(k) {
+			if (GAME_KEYS.indexOf(k) >= 0) {
+				retro.coreJoypadRelease(k)
+			}
+		})
+
 
 		var video = {
 			data: null,
@@ -163,13 +157,8 @@
 		audioSrc.connect(audioCtx.destination)
 		audioSrc.loop = true
 
-		shell.on('tick', function() {
-			// Joypad
-			for (let k in ROMS[ROM].joybind) {
-				if (shell.press(k) > 0) retro.coreJoypadPress(k)
-				if (shell.release(k) > 0) retro.coreJoypadRelease(k)
-			}
 
+		shell.on('tick', function() {
 			// Core update
 			retro.coreUpdate()
 

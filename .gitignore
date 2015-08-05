@@ -38,3 +38,4 @@ roms/psx
 roms/mame
 *.mcr
 *.log
+*.state

@@ -208,6 +208,9 @@ CORE_LIBRARY_DECL(set_audio_sample_batch);
 CORE_LIBRARY_DECL(set_input_poll);
 CORE_LIBRARY_DECL(set_input_state);
 CORE_LIBRARY_DECL(get_system_info);
+CORE_LIBRARY_DECL(serialize_size);
+CORE_LIBRARY_DECL(serialize);
+CORE_LIBRARY_DECL(unserialize);
 
 namespace
 {
@@ -316,6 +319,9 @@ void coreInit(const std::string & corePath)
   CORE_LIBRARY_BIND(set_input_poll);
   CORE_LIBRARY_BIND(set_input_state);
   CORE_LIBRARY_BIND(get_system_info);
+  CORE_LIBRARY_BIND(serialize_size);
+  CORE_LIBRARY_BIND(serialize);
+  CORE_LIBRARY_BIND(unserialize);
 
   retro::set_environment(&retro_environment);
   retro::set_video_refresh(&retro_video_refresh);
@@ -398,4 +404,16 @@ void coreJoypadPress(const std::string & name)
 void coreJoypadRelease(const std::string & name)
 {
   gCoreState->joypadsState[0][name] = false;
+}
+
+std::vector<uint8_t> coreSaveState()
+{
+  std::vector<uint8_t> res(retro::serialize_size());
+  retro::serialize(&res[0], res.size());
+  return res;
+}
+
+bool coreRestoreState(const char * data, size_t sz)
+{
+  return retro::unserialize(data, sz);
 }

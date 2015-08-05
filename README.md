@@ -9,7 +9,7 @@
 ## Building the frontend
 
     cd frontend
-    npm install
+    npm install && npm run install-fix
 
 ## Starting the frontend
 

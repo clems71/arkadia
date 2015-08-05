@@ -13,6 +13,9 @@ app.on('window-all-closed', function() {
   app.quit();
 });
 
+app.commandLine.appendSwitch('js-flags', '--es_staging');
+app.commandLine.appendSwitch('js-flags', '--harmony_arrow_functions');
+
 // This method will be called when Electron has done everything
 // initialization and ready for creating browser windows.
 app.on('ready', function() {

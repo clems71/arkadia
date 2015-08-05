@@ -224,6 +224,42 @@ void nodeCoreJoypadRelease(const FunctionCallbackInfo<Value> & args)
   coreJoypadRelease(*name);
 }
 
+// @return Buffer containing the saved state
+void nodeCoreSaveState(const FunctionCallbackInfo<Value> & args)
+{
+  Isolate* isolate = Isolate::GetCurrent();
+  HandleScope scope(isolate);
+
+  if (args.Length() != 0) {
+    isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
+  }
+
+  const auto stateBuf = coreSaveState();
+
+  auto slowBuffer = Buffer::New(stateBuf.size());
+  memcpy(Buffer::Data(slowBuffer), &stateBuf[0], stateBuf.size());
+  args.GetReturnValue().Set(slowBuffer);
+}
+
+
+// @arg Buffer containing the state to restore
+void nodeCoreRestoreState(const FunctionCallbackInfo<Value> & args)
+{
+  Isolate* isolate = Isolate::GetCurrent();
+  HandleScope scope(isolate);
+
+  if (args.Length() != 1) {
+    isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
+  }
+
+  Local<Object> bufferObj = args[0]->ToObject();
+  char*  bufferData = Buffer::Data(bufferObj);
+  size_t bufferLength = Buffer::Length(bufferObj);
+  coreRestoreState(bufferData, bufferLength);
+}
+
 
 void init(Handle<Object> exports)
 {
@@ -241,6 +277,9 @@ void init(Handle<Object> exports)
   NODE_SET_METHOD(exports, "coreJoypadDesc", nodeCoreJoypadDesc);
   NODE_SET_METHOD(exports, "coreJoypadPress", nodeCoreJoypadPress);
   NODE_SET_METHOD(exports, "coreJoypadRelease", nodeCoreJoypadRelease);
+
+  NODE_SET_METHOD(exports, "coreStateSave", nodeCoreSaveState);
+  NODE_SET_METHOD(exports, "coreStateRestore", nodeCoreRestoreState);
 }
 
 NODE_MODULE(retro_api, init)
