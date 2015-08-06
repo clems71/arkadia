@@ -247,6 +247,7 @@ namespace
 
   void retro_video_refresh(const void *data, unsigned width, unsigned height, size_t pitch)
   {
+    if (!data) return;
     // std::cout << width << 'x' << height << " - " << pitch << std::endl;
 
     const uint8_t * vData = (const uint8_t *)data;

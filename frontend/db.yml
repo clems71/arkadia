@@ -38,6 +38,20 @@ __joydefs:
     L2: kb:A
     R2: kb:S
 
+  joymame: &joymame
+    Weak Kick: kb:Z
+    Medium Kick: kb:X
+    Strong Kick: kb:C
+    Weak Punch: kb:A
+    Medium Punch: kb:S
+    Strong Punch: kb:D
+    Start: kb:enter
+    Coin: kb:Q
+    Up: kb:up
+    Down: kb:down
+    Left: kb:left
+    Right: kb:right
+
 
 micro-machine:
   core: ./cores/genesis_plus_gx_libretro
@@ -61,18 +75,5 @@ mario:
 
 mslug:
   core: ./cores/fb_alpha_libretro
-  rom: ../roms/mame/mslug.zip
-  joybind: {}
-#   },
-#   "psx": {
-#     "core": "./cores/pcsx_rearmed_libretro",
-#     "rom": "../roms/psx/mgs.cue",
-#     "joybind": {
-#     }
-#   },
-#   "mame": {
-#     "core": "./cores/mame_libretro",
-#     "rom": "../roms/mame/01.zip",
-#     "joybind": {}
-#   }
-# }
+  rom: ../roms/mame/mslug5.zip
+  joybind: *joymame
