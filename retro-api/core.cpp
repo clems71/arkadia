@@ -17,6 +17,7 @@ namespace
     CoreState(const std::string & corePath)
     {
       dlHandle = dynLibOpen(corePath);
+      isMame = (corePath.find("mame") != std::string::npos);
     }
 
     ~CoreState()
@@ -24,6 +25,7 @@ namespace
       dynLibClose(dlHandle);
     }
 
+    bool isMame = false;
     dynlib_t dlHandle;
     SettingsDesc settingsDesc;
     std::map<std::string, std::string> settings;
@@ -38,6 +40,29 @@ namespace
     typedef std::tuple<size_t, size_t, size_t> JoypadId;
     typedef std::map<JoypadId, std::string> JoypadDesc;
     std::vector<JoypadDesc> joypads;
+
+    inline bool getJoypadState(size_t port, const JoypadId & inputId)
+    {
+      fixJoypadState_();
+      if (port >= joypadsState.size()) return false;
+      return joypadsState[port][joypads[port][inputId]];
+    }
+
+    inline void setJoypadState(size_t port, const std::string & name, bool state)
+    {
+      fixJoypadState_();
+      if (port >= joypadsState.size()) return;
+      joypadsState[port][name] = state;
+    }
+
+  private:
+    void fixJoypadState_()
+    {
+      if (joypadsState.size() != joypads.size()) {
+        joypadsState.clear();
+        joypadsState.resize(joypads.size());
+      }
+    }
 
     typedef std::map<std::string, bool> JoypadState;
     std::vector<JoypadState> joypadsState;
@@ -177,17 +202,9 @@ bool retro_environment(unsigned cmd, void * data)
       while (inputDesc[i].description) {
         const auto & cur = inputDesc[i];
 
-        // if (!cur.port) {
-        //   std::cout << cur.description << '-' << cur.device << '-' << cur.index << '-' << cur.id << std::endl;
-        // }
-
         // Set joypad desc
         gCoreState->joypads.resize(cur.port + 1);
         gCoreState->joypads[cur.port][std::make_tuple(cur.device, cur.id, cur.index)] = cur.description;
-
-        // Set default state
-        gCoreState->joypadsState.resize(cur.port + 1);
-        gCoreState->joypadsState[cur.port][cur.description] = false;
         i++;
       }
       return true;
@@ -297,7 +314,8 @@ namespace
 
   int16_t retro_input_state(unsigned port, unsigned device, unsigned index, unsigned id)
   {
-    return gCoreState->joypadsState[port][gCoreState->joypads[port][std::make_tuple(device, id, index)]] ? 1 : 0;
+    const auto state = gCoreState->getJoypadState(port, std::make_tuple(device, id, index));
+    return state ? 1 : 0;
   }
 
 } // anonymous namespace
@@ -353,6 +371,46 @@ void coreLoadGame(const std::string & romPath)
   retro::get_system_av_info(&avInfo);
   gCoreState->fps = avInfo.timing.fps;
   gCoreState->audioSampleRate = avInfo.timing.sample_rate;
+
+  if (gCoreState->isMame) {
+    // HACK: Mame doesn't
+    std::cout << "[HACK] applied for MAME : populating joypad description" << std::endl;
+
+    // REFERENCE
+    // RETRO_DEVICE_ID_JOYPAD_L        [KEY_BUTTON_5]
+    // RETRO_DEVICE_ID_JOYPAD_R        [KEY_BUTTON_6]
+    // RETRO_DEVICE_ID_JOYPAD_R2       [KEY_TAB]
+    // RETRO_DEVICE_ID_JOYPAD_L2;      [KEY_F11]
+    // RETRO_DEVICE_ID_JOYPAD_R3       [KEY_F2]
+    // RETRO_DEVICE_ID_JOYPAD_L3;      [KEY_F3]
+    // RETRO_DEVICE_ID_JOYPAD_START        [KEY_START]
+    // RETRO_DEVICE_ID_JOYPAD_SELECT       [KEY_COIN]
+    // RETRO_DEVICE_ID_JOYPAD_A        [KEY_BUTTON_1]
+    // RETRO_DEVICE_ID_JOYPAD_B        [KEY_BUTTON_2]
+    // RETRO_DEVICE_ID_JOYPAD_X        [KEY_BUTTON_3]
+    // RETRO_DEVICE_ID_JOYPAD_Y        [KEY_BUTTON_4]
+    // RETRO_DEVICE_ID_JOYPAD_UP       [KEY_JOYSTICK_U]
+    // RETRO_DEVICE_ID_JOYPAD_DOWN     [KEY_JOYSTICK_D]
+    // RETRO_DEVICE_ID_JOYPAD_LEFT     [KEY_JOYSTICK_L]
+    // RETRO_DEVICE_ID_JOYPAD_RIGHT        [KEY_JOYSTICK_R]
+    //     tips: L2 activates MAME OSD
+
+
+    gCoreState->joypads = {{
+      { std::make_tuple(RETRO_DEVICE_JOYPAD, RETRO_DEVICE_ID_JOYPAD_A, 0), "Weak Kick"},
+      { std::make_tuple(RETRO_DEVICE_JOYPAD, RETRO_DEVICE_ID_JOYPAD_B, 0), "Medium Kick"},
+      { std::make_tuple(RETRO_DEVICE_JOYPAD, RETRO_DEVICE_ID_JOYPAD_X, 0), "Strong Kick"},
+      { std::make_tuple(RETRO_DEVICE_JOYPAD, RETRO_DEVICE_ID_JOYPAD_Y, 0), "Weak Punch"},
+      { std::make_tuple(RETRO_DEVICE_JOYPAD, RETRO_DEVICE_ID_JOYPAD_L, 0), "Medium Punch"},
+      { std::make_tuple(RETRO_DEVICE_JOYPAD, RETRO_DEVICE_ID_JOYPAD_R, 0), "Strong Punch"},
+      { std::make_tuple(RETRO_DEVICE_JOYPAD, RETRO_DEVICE_ID_JOYPAD_START, 0), "Start"},
+      { std::make_tuple(RETRO_DEVICE_JOYPAD, RETRO_DEVICE_ID_JOYPAD_SELECT, 0), "Coin"},
+      { std::make_tuple(RETRO_DEVICE_JOYPAD, RETRO_DEVICE_ID_JOYPAD_UP, 0), "Up"},
+      { std::make_tuple(RETRO_DEVICE_JOYPAD, RETRO_DEVICE_ID_JOYPAD_DOWN, 0), "Down"},
+      { std::make_tuple(RETRO_DEVICE_JOYPAD, RETRO_DEVICE_ID_JOYPAD_LEFT, 0), "Left"},
+      { std::make_tuple(RETRO_DEVICE_JOYPAD, RETRO_DEVICE_ID_JOYPAD_RIGHT, 0), "Right"},
+    }};
+  }
 }
 
 void coreUpdate()
@@ -402,12 +460,12 @@ std::vector<std::string> coreJoypadDesc()
 
 void coreJoypadPress(const std::string & name)
 {
-  gCoreState->joypadsState[0][name] = true;
+  gCoreState->setJoypadState(0, name, true);
 }
 
 void coreJoypadRelease(const std::string & name)
 {
-  gCoreState->joypadsState[0][name] = false;
+  gCoreState->setJoypadState(0, name, false);
 }
 
 std::vector<uint8_t> coreSaveState()

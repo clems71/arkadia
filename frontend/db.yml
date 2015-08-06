@@ -64,8 +64,9 @@ sonic:
   joybind: *joygenesis
 
 mgs:
-  core: ./cores/pcsx_rearmed_libretro
-  rom: ../roms/psx/mgs.cue
+  # core: ./cores/pcsx_rearmed_libretro
+  core: ./cores/mednafen_psx_libretro
+  rom: ../roms/psx/Metal Gear Solid (Disc 1) (v1.1).cue
   joybind: *joypsx
 
 mario:
@@ -74,6 +75,6 @@ mario:
   joybind: *joysnes
 
 mslug:
-  core: ./cores/fb_alpha_libretro
+  core: ./cores/mame_libretro
   rom: ../roms/mame/mslug5.zip
   joybind: *joymame

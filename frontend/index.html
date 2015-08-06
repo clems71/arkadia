@@ -44,10 +44,6 @@
 		const ROMS = yaml.safeLoad(fs.readFileSync('./db.yml', 'utf8'))
 
 		const ROM = 'sonic'
-		// const ROM = 'micro-machine'
-		// const ROM = 'mario'
-		// const ROM = 'mslug'
-		// const ROM = 'mgs'
 
 		try {
 			var retro = require('../retro-api/build/Release/retro-api')
